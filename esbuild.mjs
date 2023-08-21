@@ -40,7 +40,13 @@ const vscodeCtx = await esbuild.context({
 });
 
 const webviewCtx = await esbuild.context({
-    entryPoints: ['src/webview/app.tsx'],
+    entryPoints: [
+        'src/webview/inputs.tsx',
+        'src/webview/outputs.tsx',
+        'src/webview/modules.tsx',
+        'src/webview/scenario.tsx',
+        'src/webview/solver.tsx',
+    ],
     outdir: 'out/webview',
     bundle: true,
     target: 'ES2017',

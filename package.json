@@ -16,8 +16,28 @@
         "switchView": [
             {
                 "type": "webview",
-                "id": "switch.modelView",
-                "name": "Switch Model"
+                "id": "switch.scenario",
+                "name": "Scenario"
+            },
+            {
+                "type": "webview",
+                "id": "switch.inputs",
+                "name": "Inputs"
+            },
+            {
+                "type": "webview",
+                "id": "switch.outputs",
+                "name": "Outputs"
+            },
+            {
+                "type": "webview",
+                "id": "switch.modules",
+                "name": "Modules"
+            },
+            {
+                "type": "webview",
+                "id": "switch.solver",
+                "name": "Solver"
             }
         ]
     },

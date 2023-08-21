@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
+import { getNonce } from './utilts';
 
-export class SwitchModelViewProvider implements vscode.WebviewViewProvider {
+export class InputsViewProvider implements vscode.WebviewViewProvider {
 
-	public static readonly viewType = 'switch.modelView';
+	public static readonly viewType = 'switch.inputs';
 
 	private _view?: vscode.WebviewView;
 
@@ -31,7 +32,7 @@ export class SwitchModelViewProvider implements vscode.WebviewViewProvider {
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'out', 'webview', 'app.js'));
+		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'out', 'webview', 'inputs.js'));
 
 		// Do the same for the stylesheet.
 		// const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
@@ -68,13 +69,4 @@ export class SwitchModelViewProvider implements vscode.WebviewViewProvider {
 			</body>
 			</html>`;
 	}
-}
-
-function getNonce() {
-	let text = '';
-	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	for (let i = 0; i < 32; i++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-	return text;
 }
