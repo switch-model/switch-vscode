@@ -12,16 +12,29 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "switch-vscode.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    "views": {
+        "switchView": [
+            {
+                "type": "webview",
+                "id": "switch.modelView",
+                "name": "Switch Model"
+            }
+        ]
+    },
+    "viewsContainers": {
+        "activitybar": [
+            {
+                "icon": "resources/switch.svg",
+                "id": "switchView",
+                "title": "Switch Model"
+            }
+        ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
+    "bundle": "node esbuild.mjs",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -34,6 +47,7 @@
     "@types/node": "20.2.5",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
+    "esbuild": "^0.19.2",
     "eslint": "^8.41.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
