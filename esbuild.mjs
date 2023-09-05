@@ -4,7 +4,7 @@ import * as esbuild from 'esbuild';
 const watch = process.argv.includes('--watch');
 const minify = process.argv.includes('--minify');
 
-const success = watch ? 'Watch build succeeded' : 'Build succeeded';
+const success = watch ? ' watch build succeeded' : ' build succeeded';
 
 function getTime() {
     const date = new Date();
@@ -15,12 +15,23 @@ function padZeroes(i) {
     return i.toString().padStart(2, '0');
 }
 
-const plugins = [{
+const vscodePlugins = [{
     name: 'watch-plugin',
     setup(build) {
         build.onEnd(result => {
             if (result.errors.length === 0) {
-                console.log(getTime() + success);
+                console.log(getTime() + 'Extension' + success);
+            }
+        });
+    },
+}];
+
+const webviewPlugins = [{
+    name: 'watch-plugin',
+    setup(build) {
+        build.onEnd(result => {
+            if (result.errors.length === 0) {
+                console.log(getTime() + 'Webview' + success);
             }
         });
     },
@@ -36,7 +47,7 @@ const vscodeCtx = await esbuild.context({
     platform: 'node',
     sourcemap: !minify,
     minify,
-    plugins
+    plugins: vscodePlugins
 });
 
 const webviewCtx = await esbuild.context({
@@ -57,6 +68,7 @@ const webviewCtx = await esbuild.context({
     platform: 'browser',
     sourcemap: !minify,
     minify,
+    plugins: webviewPlugins
 });
 
 if (watch) {

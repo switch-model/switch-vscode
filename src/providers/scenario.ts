@@ -31,6 +31,6 @@ export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-        return generateHtml(webview, this._extensionUri, 'Switch Model', ['scenario.js'], ['main.css']);
+        return generateHtml(webview, this._extensionUri, ['scenario.js'], ['main.css']);
 	}
 }

@@ -32,6 +32,6 @@ export class SolverViewProvider implements vscode.WebviewViewProvider {
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		return generateHtml(webview, this._extensionUri, 'Switch Model', ['solver.js'], ['main.css']);
+		return generateHtml(webview, this._extensionUri, ['solver.js'], ['main.css']);
 	}
 }

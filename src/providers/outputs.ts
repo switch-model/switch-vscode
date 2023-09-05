@@ -31,6 +31,6 @@ export class OutputsViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		return generateHtml(webview, this._extensionUri, 'Switch Model', ['outputs.js'], ['main.css']);
+		return generateHtml(webview, this._extensionUri, ['outputs.js'], ['main.css']);
 	}
 }

@@ -52,22 +52,31 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run package",
+    "compile": "tsc",
+    "package": "npm run compile && npm run tailwind && npm run bundle",
     "bundle": "node esbuild.mjs",
-    "watch": "tsc -watch -p ./",
+    "watch": "concurrently -c yellow,red -n tailwind,bundle \"npm run tailwind -- --watch\" \"npm run bundle -- --watch\"",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "tailwind": "tailwindcss -i ./src/webview/main.css -o ./out/webview/main.css"
+  },
+  "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.2.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.70.0",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "20.2.5",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
+    "concurrently": "^8.2.1",
     "esbuild": "^0.19.2",
     "eslint": "^8.41.0",
     "glob": "^8.1.0",

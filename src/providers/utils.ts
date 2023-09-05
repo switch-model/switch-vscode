@@ -9,7 +9,7 @@ export function getNonce() {
 	return text;
 }
 
-export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, title: string, js: string[], css: string[]): string {
+export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, js: string[], css: string[]): string {
     const nonce = getNonce();
     const jsUris = js.map(file => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'out', 'webview', file)));
     const cssUris = css.map(file => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'out', 'webview', file)));
@@ -22,14 +22,15 @@ export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, title:
 					Use a content security policy to only allow loading styles from our extension directory,
 					and only allow scripts that have a specific nonce.
 					(See the 'webview-sample' extension sample for img-src content security policy examples)
+                    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+				
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
                 ${cssUris.map(uri => `<link href="${uri}" rel="stylesheet">`).join('\n')}
 
-				<title>${title}</title>
+				<title>Switch Model</title>
 			</head>
 			<body>
                 <div id="main"></div>

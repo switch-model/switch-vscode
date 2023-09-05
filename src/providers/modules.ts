@@ -31,6 +31,6 @@ export class ModulesViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		return generateHtml(webview, this._extensionUri, 'Switch Model', ['modules.js'], ['main.css']);
+		return generateHtml(webview, this._extensionUri, ['modules.js'], ['main.css']);
 	}
 }

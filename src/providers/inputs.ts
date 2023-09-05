@@ -31,6 +31,6 @@ export class InputsViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		return generateHtml(webview, this._extensionUri, 'Switch Model', ['inputs.js'], ['main.css']);
+		return generateHtml(webview, this._extensionUri, ['inputs.js'], ['main.css']);
 	}
 }
