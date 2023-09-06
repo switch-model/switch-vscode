@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { generateHtml, getNonce } from './utils';
+import { generateHtml } from './utils';
 
 export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 
@@ -31,6 +31,6 @@ export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-        return generateHtml(webview, this._extensionUri, ['scenario.js'], ['main.css']);
+        return generateHtml(webview, this._extensionUri, ['scenario.js'], ['main.css', 'codicon.css']);
 	}
 }

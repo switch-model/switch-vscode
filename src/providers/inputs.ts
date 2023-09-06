@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { generateHtml } from './utils';
+import { MessengerInstance } from './messenger';
 
 export class InputsViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'switch.inputs';
 
-	private _view?: vscode.WebviewView;
+    private _view?: vscode.WebviewView;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -16,7 +17,8 @@ export class InputsViewProvider implements vscode.WebviewViewProvider {
 		context: vscode.WebviewViewResolveContext,
 		_token: vscode.CancellationToken,
 	) {
-		this._view = webviewView;
+        this._view = webviewView;
+        MessengerInstance.registerWebview(webviewView);
 
 		webviewView.webview.options = {
 			// Allow scripts in the webview
@@ -31,6 +33,6 @@ export class InputsViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		return generateHtml(webview, this._extensionUri, ['inputs.js'], ['main.css']);
+		return generateHtml(webview, this._extensionUri, ['inputs.js'], ['main.css', 'codicon.css']);
 	}
 }
