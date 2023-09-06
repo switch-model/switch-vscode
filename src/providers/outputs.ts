@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { generateHtml, getNonce } from './utils';
+import { generateHtml } from './utils';
+import { MessengerInstance } from './messenger';
 
 export class OutputsViewProvider implements vscode.WebviewViewProvider {
 
@@ -17,6 +18,7 @@ export class OutputsViewProvider implements vscode.WebviewViewProvider {
 		_token: vscode.CancellationToken,
 	) {
 		this._view = webviewView;
+        MessengerInstance.registerWebview(webviewView);
 
 		webviewView.webview.options = {
 			// Allow scripts in the webview
