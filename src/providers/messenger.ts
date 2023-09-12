@@ -1,8 +1,14 @@
 import * as vscode from 'vscode';
 import { Messenger } from "vscode-messenger";
-import { CreateFolder, SelectFile, SetOutputDirectory } from "../common/messages";
+import { CreateFolder, GetOptions, SelectFile, SetOptions } from "../common/messages";
+import { inject, injectable } from 'inversify';
+import { OptionsFileHandler } from '../system/options';
 
+@injectable()
 export class SwitchMessenger {
+
+    @inject(OptionsFileHandler)
+    private optionsFileHandler: OptionsFileHandler;
 
     private messenger: Messenger;
 
@@ -26,8 +32,12 @@ export class SwitchMessenger {
                 vscode.window.showErrorMessage('Failed to create folder: ' + err.message);
             }
         });
-        this.messenger.onNotification(SetOutputDirectory, folder => {
-            console.log('Set output folder: ' + (folder || 'outputs'));
+        this.messenger.onNotification(SetOptions, options => {
+            console.log('Set options: ', options);
+        });
+        this.messenger.onRequest(GetOptions, async () => {
+            const options = await this.optionsFileHandler.getOptions();
+            return options;
         });
     }
 
@@ -51,5 +61,3 @@ export class SwitchMessenger {
     }
 
 }
-
-export const MessengerInstance = new SwitchMessenger();

@@ -1,16 +1,20 @@
 import * as vscode from 'vscode';
 import { generateHtml } from './utils';
-import { MessengerInstance } from './messenger';
+import { inject, injectable } from 'inversify';
+import { SwitchMessenger } from './messenger';
+import { ExtensionContext } from '../constants';
 
+@injectable()
 export class InputsViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'switch.inputs';
 
     private _view?: vscode.WebviewView;
 
-	constructor(
-		private readonly _extensionUri: vscode.Uri,
-	) { }
+    @inject(SwitchMessenger)
+    private readonly messenger: SwitchMessenger;
+    @inject(ExtensionContext)
+    private readonly context: vscode.ExtensionContext;
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -18,14 +22,14 @@ export class InputsViewProvider implements vscode.WebviewViewProvider {
 		_token: vscode.CancellationToken,
 	) {
         this._view = webviewView;
-        MessengerInstance.registerWebview(webviewView);
+        this.messenger.registerWebview(webviewView);
 
 		webviewView.webview.options = {
 			// Allow scripts in the webview
 			enableScripts: true,
 
 			localResourceRoots: [
-				this._extensionUri
+				this.context.extensionUri
 			]
 		};
 
@@ -33,6 +37,6 @@ export class InputsViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-		return generateHtml(webview, this._extensionUri, ['inputs.js'], ['main.css', 'codicon.css']);
+		return generateHtml(webview, this.context.extensionUri, ['inputs.js'], ['main.css', 'codicon.css']);
 	}
 }

@@ -1,15 +1,20 @@
 import * as vscode from 'vscode';
-import { generateHtml, getNonce } from './utils';
+import { generateHtml } from './utils';
+import { inject, injectable } from 'inversify';
+import { SwitchMessenger } from './messenger';
+import { ExtensionContext } from '../constants';
 
+@injectable()
 export class SolverViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'switch.solver';
 
 	private _view?: vscode.WebviewView;
 
-	constructor(
-		private readonly _extensionUri: vscode.Uri,
-	) { }
+	@inject(SwitchMessenger)
+    private readonly messenger: SwitchMessenger;
+    @inject(ExtensionContext)
+    private readonly context: vscode.ExtensionContext;
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -23,7 +28,7 @@ export class SolverViewProvider implements vscode.WebviewViewProvider {
 			enableScripts: true,
 
 			localResourceRoots: [
-				this._extensionUri
+				this.context.extensionUri
 			]
 		};
 
@@ -32,6 +37,6 @@ export class SolverViewProvider implements vscode.WebviewViewProvider {
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
 		// Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-		return generateHtml(webview, this._extensionUri, ['solver.js'], ['main.css', 'codicon.css']);
+		return generateHtml(webview, this.context.extensionUri, ['solver.js'], ['main.css', 'codicon.css']);
 	}
 }

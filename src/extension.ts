@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -6,16 +7,26 @@ import { InputsViewProvider } from './providers/inputs';
 import { SolverViewProvider } from './providers/solver';
 import { OutputsViewProvider } from './providers/outputs';
 import { ModulesViewProvider } from './providers/modules';
+import { Container } from 'inversify';
+import containerModule from './container-module';
+import { ExtensionContext } from './constants';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext): void {
+
+    const container = new Container({
+        autoBindInjectable: true,
+        defaultScope: 'Singleton'
+    });
+    container.load(containerModule);
+    container.bind(ExtensionContext).toConstantValue(context);
     
-    const scenarioViewProvider = new ScenarioViewProvider(context.extensionUri);
-    const inputsViewProvider = new InputsViewProvider(context.extensionUri);
-    const modulesViewProvider = new ModulesViewProvider(context.extensionUri);
-    const outputsViewProvider = new OutputsViewProvider(context.extensionUri);
-    const solverViewProvider = new SolverViewProvider(context.extensionUri);
+    const scenarioViewProvider = container.get(ScenarioViewProvider);
+    const inputsViewProvider = container.get(InputsViewProvider);
+    const modulesViewProvider = container.get(ModulesViewProvider);
+    const outputsViewProvider = container.get(OutputsViewProvider);
+    const solverViewProvider = container.get(SolverViewProvider);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ScenarioViewProvider.viewType, scenarioViewProvider),

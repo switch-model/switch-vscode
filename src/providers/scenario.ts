@@ -1,15 +1,20 @@
 import * as vscode from 'vscode';
 import { generateHtml } from './utils';
+import { SwitchMessenger } from './messenger';
+import { ExtensionContext } from '../constants';
+import { inject, injectable } from 'inversify';
 
+@injectable()
 export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 
 	public static readonly viewType = 'switch.scenario';
 
 	private _view?: vscode.WebviewView;
 
-	constructor(
-		private readonly _extensionUri: vscode.Uri,
-	) { }
+	@inject(SwitchMessenger)
+    private readonly messenger: SwitchMessenger;
+    @inject(ExtensionContext)
+    private readonly context: vscode.ExtensionContext;
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -23,7 +28,7 @@ export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 			enableScripts: true,
 
 			localResourceRoots: [
-				this._extensionUri
+				this.context.extensionUri
 			]
 		};
 
@@ -31,6 +36,6 @@ export class ScenarioViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview) {
-        return generateHtml(webview, this._extensionUri, ['scenario.js'], ['main.css', 'codicon.css']);
+        return generateHtml(webview, this.context.extensionUri, ['scenario.js'], ['main.css', 'codicon.css']);
 	}
 }

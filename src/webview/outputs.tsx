@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { VSCodeButton, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { Messenger } from "vscode-messenger-webview";
-import { CreateFolder, SelectFile, SetOutputDirectory } from '../common/messages';
+import { CreateFolder, GetOptions, SelectFile, SetOptions } from '../common/messages';
 import { Button } from './components/button';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -16,8 +16,19 @@ function OutputView(): React.JSX.Element {
     const [filePath, setFilePath] = React.useState('');
 
     React.useEffect(() => {
-        messenger.sendNotification(SetOutputDirectory, { type: 'extension' }, filePath);
+        messenger.sendNotification(SetOptions, { type: 'extension' }, {
+            outputsDir: filePath.length > 0 ? filePath : undefined
+        });
     }, [filePath]);
+
+    React.useEffect(() => {
+        (async () => {
+            const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
+            if (options?.outputsDir) {
+                setFilePath(options.outputsDir);
+            }
+        })();
+    });
 
     return <Layout direction='vertical'>
         <Label>Outputs Folder</Label>
