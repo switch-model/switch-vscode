@@ -17,6 +17,11 @@ export type Options = {
     evReserveTypes?: ReserveTypes,
     unitContingency?: true,
     spinningRequirementRule?: string
+
+    moduleList?: string;
+    includeModules?: string[];
+    excludeModules?: string[];
+
 };
 
 export type SolverOptionsString = {

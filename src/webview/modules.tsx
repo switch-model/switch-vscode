@@ -1,12 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { SelectFile } from '../common/messages';
+import { GetModules, GetSearchPaths, SelectFile, UpdateModule } from '../common/messages';
+import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
 import { VSCodeButton, VSCodeCheckbox, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import { type } from 'os';
-import { Module, Option } from '../common/types';
 
 const vscode = acquireVsCodeApi();
 
@@ -15,8 +14,11 @@ messenger.start();
 
 function ModulesView() {
     const [searchPaths, setSearchPaths] = React.useState(['', 'C:\\Users\\johndoe\\Documents\\GitHub\\switch\\inputs', 'C:\\Users\\johndoe\\Documents\\GitHub\\switch\\modules']);
-    const [options, setoptions] = React.useState([{name: 'option', value: true}, {name: 'option2', value: 'value'}, {name: 'option3', value: ['value 1']}]);
-    const [modules, setModules] = React.useState([{ name: 'module A', active: true, description: 'a short description of the module'}, { name: 'module B', active: false, description: 'some desc for mod2'}] as Module[]);
+    const [modules, setModules] = React.useState([]);
+    React.useEffect(() => {
+        messenger.sendRequest(GetModules, {type: 'extension'}).then(setModules);
+        messenger.sendRequest(GetSearchPaths, {type: 'extension'}).then(setSearchPaths);
+    }, []);
 
     return <Layout direction='vertical'>
         <Label>Search Paths</Label>
@@ -37,7 +39,11 @@ function ModulesView() {
         <VSCodeButton className='w-fit self-end my-1' onClick={() => setSearchPaths([...searchPaths, ''])}>Add</VSCodeButton>
 
         <Label className='mt-[20px]'>Options</Label>
-        {options.map((option, i) => <Option option={option} key={i}/>)}
+        {modules
+            .filter(module => module.active && module.options)
+            .flatMap(module => module.options)
+            // TODO filter out shared options (duplicate names)
+            .map((option, i) => <Option option={option} key={i}/>)}
 
 
         <Label className='mt-[20px]'>Found Modules</Label>
@@ -135,14 +141,14 @@ function FoundModule({module}: FoundModuleProps) {
                 <span className={`codicon codicon-${expanded ? 'chevron-down' : 'chevron-right'}`}></span>
             </VSCodeButton>
             <Label className=' grow'>{module.name}</Label>
-            <VSCodeCheckbox checked={module.active}></VSCodeCheckbox>
+            <VSCodeCheckbox checked={module.active} onChange={e => messenger.sendNotification(UpdateModule, {type: 'extension'})}></VSCodeCheckbox>
         </Layout>
         {expanded && <Label>{module.description}</Label>}
     </Layout>;
 }
 
 type OptionProps = {
-    option: Option;
+    option: ModuleOption;
 };
 
 function Option({option}: OptionProps) {
@@ -150,7 +156,7 @@ function Option({option}: OptionProps) {
         case 'boolean':
             return <BooleanOption option={option}/>;
         case 'string':
-            return <StringOption option={option}/>;
+            return <FilePathOption option={option}/>;
         case 'object':
             return <ComplexOption option={option}/>;
     }
@@ -158,23 +164,43 @@ function Option({option}: OptionProps) {
 
 function BooleanOption({option}: OptionProps) {
     return <Layout direction='horizontal'>
-        <VSCodeCheckbox checked></VSCodeCheckbox>
-        <Label>{option.name}</Label>
+        <Label className='grow pr-1'>{option.name}</Label>
+        <VSCodeCheckbox aria-describedby={`${option.name}-tooltip`}  checked={option.value as boolean}></VSCodeCheckbox>
+        <span role='tooltip' id={`${option.name}-tooltip`}></span>
     </Layout>;
 }
 
-function StringOption({option}: OptionProps) {
+function FilePathOption({option}: OptionProps) {
     return <Layout direction='horizontal'>
-        <Label>{option.name}</Label>
-        <VSCodeTextField value={option.value}></VSCodeTextField>
+        <Label className='grow pr-1'>{option.name}</Label>
+        <VSCodeTextField value={option.value as string}>
+            <div slot="end" className='flex align-items-center'>
+                <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
+                    option.value = await messenger.sendRequest(SelectFile, {
+                            type: 'extension'
+                        }, {
+                            canSelectFiles: false,
+                            canSelectFolders: true,
+                            canSelectMany: false
+                        })[0] ?? option.value;
+                    }}>
+                        <span className="codicon codicon-folder-opened"></span>
+                </VSCodeButton>
+            </div>
+        </VSCodeTextField>
     </Layout>;
 }
 
 function ComplexOption({option}: OptionProps) {
     const entries = option.value as string[]; 
     return <Layout direction='vertical'>
-        <Label>{option.name}</Label>
-        {entries.map((entry, i) => <VSCodeTextField key={i} value={entry}></VSCodeTextField>)}
+        <Label className='grow pr-1'>{option.name}</Label>
+        {entries.map((entry, i) => <Layout direction='horizontal'>
+                <VSCodeTextField key={i} value={entry}></VSCodeTextField>
+                <VSCodeButton appearance="icon" title="Delete" onClick={() => entries.splice(i, 1)}>
+                    <span className="codicon codicon-close"></span>
+                </VSCodeButton>
+            </Layout>)}
     </Layout>;
 }
 
