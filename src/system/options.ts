@@ -23,11 +23,38 @@ export class OptionsFileHandler {
 
 }
 
+type OptionParser = {
+    canHandle: string[] | ((option: string) => boolean);
+    parse: (options: Options, name: string, params: string[]) => void;
+};
+
+const optionTypes = <OptionParser[]>[
+    { canHandle: ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency'], parse: (options, name) => options[name] = true}, // true
+    { canHandle: ['forceLngTier'], parse:  (options, name) => options[name] = false}, // false 
+    { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0]}, // number
+    { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options)}, // solverOptionsString
+    { canHandle: ['moduleList', 'includeModules', 'excludeModules'], parse: (options, name, params) => options[name] = params}, // list of strings 
+    { canHandle: () => true, parse: (options, name, params) => options[name] = params[0]}, // string. default option type
+];
+
+function parseQuotedOptionsString(params: string[], options: Options) {
+    let solverOptionsString: SolverOptionsString = {};
+    const nameToParam = params.map(param => param.replace(`'`, '').split('='));
+    for (const [paramName, value] of nameToParam) {
+        const normParamName = _.lowerCase(paramName).split(' ').join('');
+        solverOptionsString = {...solverOptionsString,
+            [normParamName as keyof typeof solverOptionsString]: normParamName !== 'primalopt' ? +value : value
+        };
+    }
+    Object.assign(options, solverOptionsString);
+}
+
 export async function getOptions(filePath: string): Promise<Options> {
     const content = await fs.readFile(filePath, 'utf8');
     const optionsInStr = content
         .split(new RegExp('\n'))
         .filter(line => !line.startsWith('#'))
+        .map(line => line.trim())
         .flatMap(line => line.split('--'))
         .filter(line => line !== '')
         .map(line => line.split(' '));
@@ -36,63 +63,13 @@ export async function getOptions(filePath: string): Promise<Options> {
     for (const option of optionsInStr) {
         const name = _.camelCase(option[0]) as keyof Options;
         const params = option.slice(1).filter(op => op !== '');
-        if (isOption(name)) {
-            if (isTrueOption(name)) {
-                resOptions = {...resOptions, [name]: true };
-            } else if (isFalseOption(name)) {
-                resOptions = {...resOptions, [name]: false };
-            } else if (isStringOption(name)) {
-                resOptions = {...resOptions, [name]: params[0] };
-            } else if (isNumberOption(name)) {
-                resOptions = {...resOptions, [name]: +params[0] };
-            } else if (name === 'solverOptionsString') {
-                let solverOptionsString: SolverOptionsString = {};
-                const nameToParam = params.map(param => param.replace(`'`, '').split('='));
-                for (const [paramName, value] of nameToParam) {
-                    const normParamName = _.lowerCase(paramName).split(' ').join('');
-                    solverOptionsString = {...solverOptionsString,
-                        [normParamName as keyof typeof solverOptionsString]: normParamName !== 'primalopt' ? +value : value
-                    };
-                }
-                resOptions = {...resOptions, solverOptionsString };
-            }
-        } else {
-            // We assume it's a string option
-            resOptions = {...resOptions, [name]: params[0] };
-        }
+        optionTypes.find(optionType => typeof optionType.canHandle === 'function' ? 
+                                        optionType.canHandle(name) : 
+                                        optionType.canHandle.includes(name)
+            )?.parse(resOptions, name, params); 
     }
     return resOptions;
 }
-
-function isOption(optionName: string): boolean {
-    return isTrueOption(optionName)
-        || isFalseOption(optionName)
-        || isNumberOption(optionName)
-        || isStringOption(optionName)
-        || optionName === 'solverOptionsString';
-}
-
-function isTrueOption(optionName: string): boolean {
-    return ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency']
-        .includes(optionName);
-}
-
-function isFalseOption(optionName: string): boolean {
-    return ['forceLngTier']
-        .includes(optionName);
-}
-
-function isNumberOption(optionName: string): boolean {
-    return ['demandResponseShare']
-        .includes(optionName);
-}
-
-function isStringOption(optionName: string): boolean {
-    return ['solver', 'inputsDir', 'rpsAllocation', 'contingencyReserveType',
-        'regulatingReserveType', 'demandResponseReserveTypes', 'evReserveTypes', 'spinningRequirementRule']
-        .includes(optionName);
-}
-
 
 // -h, --help            show this help message and exit
 // --skip-generic-output
