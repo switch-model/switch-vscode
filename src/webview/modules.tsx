@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetModules, GetSearchPaths, SelectFile, UpdateModule } from '../common/messages';
+import { GetModules, GetOptions, SelectFile, UpdateModule } from '../common/messages';
 import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -13,11 +13,11 @@ const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
 
 function ModulesView() {
-    const [searchPaths, setSearchPaths] = React.useState(['', 'C:\\Users\\johndoe\\Documents\\GitHub\\switch\\inputs', 'C:\\Users\\johndoe\\Documents\\GitHub\\switch\\modules']);
+    const [searchPaths, setSearchPaths] = React.useState([]);
     const [modules, setModules] = React.useState([]);
     React.useEffect(() => {
         messenger.sendRequest(GetModules, {type: 'extension'}).then(setModules);
-        messenger.sendRequest(GetSearchPaths, {type: 'extension'}).then(setSearchPaths);
+        messenger.sendRequest(GetOptions, {type: 'extension'}).then(options => setSearchPaths(options.moduleSearchPath));
     }, []);
 
     return <Layout direction='vertical'>

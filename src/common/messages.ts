@@ -28,10 +28,3 @@ export const GetModules: RequestType<void, Module[]> = {
 export const UpdateModule: NotificationType<Module> = {
     method: 'UpdateModule'
 };
-
-export const GetSearchPaths: RequestType<void, string[]> = {
-    method: 'GetSearchPaths'
-};
-export const SetSearchPaths: RequestType<string[], void> = {
-    method: 'SetSearchPaths'
-};
