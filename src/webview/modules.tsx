@@ -45,7 +45,6 @@ function ModulesView() {
             .filter(module => module.active && module.options)
             .flatMap(module => module.options)
             .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
-            // TODO filter out shared options (duplicate names)
             .map((option, i) => <tr className='my-1'>     
                  <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name}</Label></td>
                  <td><Option option={option} key={i}/></td>
