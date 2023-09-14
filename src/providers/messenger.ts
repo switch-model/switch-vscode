@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Messenger } from "vscode-messenger";
-import { CreateFolder, GetModules, GetOptions, GetSearchPaths, SelectFile, SetOptions } from "../common/messages";
+import { CreateFolder, GetModules, GetOptions, GetSearchPaths, SelectFile, SetOptions, UpdateModule } from "../common/messages";
 import { inject, injectable } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -47,21 +47,9 @@ export class SwitchMessenger {
         this.messenger.onRequest(GetModules, async () => {
             console.log('Get modules');
             return await this.modulesHandler.loadModules();
-            // return hardcodede test modules for now
-            // return <Module[]>[
-            //     {
-            //         active: true,
-            //         description: 'Test module A',
-            //         name: 'Module A',
-            //         options: [{name: 'Option1', value: '', description: 'some description'}, {name: 'Option2', value: true}]
-            //     },
-            //     {
-            //         active: false,
-            //         description: 'Test module B',
-            //         name: 'Module B',
-            //         options: [{name: 'Option3', value: []}]
-            //     }
-            // ];
+        });
+        this.messenger.onNotification(UpdateModule, async (module: Module) => {
+            this.modulesHandler.updateModule(module);
         });
     }
 

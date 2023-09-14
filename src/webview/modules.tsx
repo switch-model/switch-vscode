@@ -141,7 +141,7 @@ function FoundModule({module}: FoundModuleProps) {
                 <span className={`codicon codicon-${expanded ? 'chevron-down' : 'chevron-right'}`}></span>
             </VSCodeButton>
             <Label className=' grow'>{module.name}</Label>
-            <VSCodeCheckbox checked={module.active} onChange={e => messenger.sendNotification(UpdateModule, {type: 'extension'})}></VSCodeCheckbox>
+            <VSCodeCheckbox checked={module.active} onChange={e => messenger.sendNotification(UpdateModule, {type: 'extension'}, {...module, active: e.target.checked})}></VSCodeCheckbox>
         </Layout>
         {expanded && <Label>{module.description}</Label>}
     </Layout>;
