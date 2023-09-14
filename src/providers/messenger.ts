@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Messenger } from "vscode-messenger";
-import { CreateFolder, GetModules, GetOptions, GetSearchPaths, SelectFile, SetOptions, UpdateModule } from "../common/messages";
+import { CreateFolder, GetModules, GetOptions, InstallModule, SelectFile, SetOptions, UpdateModule } from "../common/messages";
 import { inject, injectable } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -50,6 +50,9 @@ export class SwitchMessenger {
         });
         this.messenger.onNotification(UpdateModule, async (module: Module) => {
             this.modulesHandler.updateModule(module);
+        });
+        this.messenger.onRequest(InstallModule, async () => {
+            this.modulesHandler.installNewModule();
         });
     }
 

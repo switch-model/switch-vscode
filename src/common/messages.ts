@@ -28,3 +28,7 @@ export const GetModules: RequestType<void, Module[]> = {
 export const UpdateModule: NotificationType<Module> = {
     method: 'UpdateModule'
 };
+
+export const InstallModule: RequestType<string, void> = {
+    method: 'InstallModule'
+};
