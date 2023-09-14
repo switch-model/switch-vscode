@@ -40,12 +40,18 @@ function ModulesView() {
         <VSCodeButton className='w-fit self-end my-1' onClick={() => setSearchPaths([...searchPaths, ''])}>Add</VSCodeButton>
 
         <Label className='mt-[20px] font-bold'>Options</Label>
-        {modules
+        <table>
+            {modules
             .filter(module => module.active && module.options)
             .flatMap(module => module.options)
             .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
             // TODO filter out shared options (duplicate names)
-            .map((option, i) => <Option option={option} key={i}/>)}
+            .map((option, i) => <tr className='my-1'>     
+                 <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name}</Label></td>
+                 <td><Option option={option} key={i}/></td>
+                 </tr>
+            )}
+        </table>
 
 
         <Label className='mt-[20px] font-bold'>Found Modules</Label>
@@ -168,17 +174,11 @@ function Option({option}: OptionProps) {
 }
 
 function BooleanOption({option}: OptionProps) {
-    return <Layout direction='horizontal'>
-        <Label className='grow pr-1'>{option.name}</Label>
-        <VSCodeCheckbox aria-describedby={`${option.name}-tooltip`} checked={option.value as boolean} onChange={e => onOptionChange(option, e.target.checked)}></VSCodeCheckbox>
-        <span role='tooltip' id={`${option.name}-tooltip`}></span>
-    </Layout>;
+    return <VSCodeCheckbox checked={option.value as boolean} onChange={e => onOptionChange(option, e.target.checked)}></VSCodeCheckbox>;
 }
 
 function StringOption({option}: OptionProps) {
-    return <Layout direction='horizontal'>
-        <Label className='grow pr-1'>{option.name}</Label>
-        <VSCodeTextField value={option.value as string} onChange={e => onOptionChange(option, e.target.value)}>
+    return <VSCodeTextField className='w-full' value={option.value as string} onChange={e => onOptionChange(option, e.target.value)}>
             <div slot="end" className='flex align-items-center'>
                 <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
                     option.value = await messenger.sendRequest(SelectFile, {
@@ -192,16 +192,14 @@ function StringOption({option}: OptionProps) {
                         <span className="codicon codicon-folder-opened"></span>
                 </VSCodeButton>
             </div>
-        </VSCodeTextField>
-    </Layout>;
+        </VSCodeTextField>;
 }
 
 function ComplexOption({option}: OptionProps) {
     const [entries, setEntries] = React.useState(option.value as string[]);
-    return <Layout direction='vertical'>
-        <Label className='grow pr-1'>{option.name}</Label>
-        {entries.map((entry, i) => <Layout className='self-end' direction='horizontal'>
-                <VSCodeTextField key={i} value={entry} onChange={e => {
+    return <>
+        {entries.map((entry, i) => <Layout direction='horizontal'>
+                <VSCodeTextField className='grow' key={i} value={entry} onChange={e => {
                     entries[i] = e.target.value;
                     setEntries([...entries]);
                     onOptionChange(option, entries);
@@ -222,7 +220,7 @@ function ComplexOption({option}: OptionProps) {
                         <span className="codicon codicon-plus"></span>
             </VSCodeButton>
 
-    </Layout>;
+    </>;
 }
 
 function onOptionChange(option: ModuleOption, newValue: any) {
