@@ -26,6 +26,8 @@ describe('Parsing of `options.txt`', () => {
 			"streamSolver": true,
 			"unitContingency": true,
 			"verbose": true,
+			"includeModules": ["switch_model.hawaii.smooth_dispatch"],
+			"moduleSearchPath": ["path1", "path2", "path3"]
 		});
 	});
 });
