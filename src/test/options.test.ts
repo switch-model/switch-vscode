@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { Options, getOptions } from '../common/options';
+import { Options } from '../common/options';
+import { getOptions } from '../system/options';
+
 
 describe('Parsing of `options.txt`', () => {
 

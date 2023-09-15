@@ -5,8 +5,7 @@ import { GetModules, GetOptions, InstallModule, SelectFile, SetOptions, UpdateMo
 import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
-import { VSCodeButton, VSCodeCheckbox, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import { type } from 'os';
+import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 
 const vscode = acquireVsCodeApi();
 
@@ -14,16 +13,16 @@ const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
 
 function ModulesView() {
-    const [searchPaths, setSearchPaths] = React.useState([]);
-    const [modules, setModules] = React.useState([]);
+    const [searchPaths, setSearchPaths] = React.useState<string[]>(undefined);
+    const [modules, setModules] = React.useState<Module[]>(undefined);
     React.useEffect(() => {
         messenger.sendRequest(GetModules, {type: 'extension'}).then(setModules);
-        messenger.sendRequest(GetOptions, {type: 'extension'}).then(options => setSearchPaths(options.moduleSearchPath));
+        messenger.sendRequest(GetOptions, {type: 'extension'}).then(options => setSearchPaths(options.moduleSearchPath?.length > 0 ? options.moduleSearchPath : ['']));
     }, []);
 
     return <Layout direction='vertical'>
         <Label className='font-bold'>Search Paths</Label>
-        {searchPaths.map((path, i) => <SearchPath key={i} path={path}  index={i}
+        {searchPaths ? searchPaths.map((path, i) => <SearchPath key={i} path={path}  index={i}
         onChange={(path) => {
             searchPaths[i] = path;
             setSearchPaths([...searchPaths]);
@@ -36,12 +35,12 @@ function ModulesView() {
             searchPaths.splice(from < to ? to - 1 : to, 0, searchPaths.splice(from, 1)[0]);
             setSearchPaths([...searchPaths]);
         }}
-        />)}
+        />) : <VSCodeProgressRing/>}
         <VSCodeButton className='w-fit self-end my-1' onClick={() => setSearchPaths([...searchPaths, ''])}>Add</VSCodeButton>
 
         <Label className='mt-[20px] font-bold'>Options</Label>
         <table>
-            {modules
+            {modules ? modules
             .filter(module => module.active && module.options)
             .flatMap(module => module.options)
             .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
@@ -49,12 +48,12 @@ function ModulesView() {
                  <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name}</Label></td>
                  <td><Option option={option} key={i}/></td>
                  </tr>
-            )}
+            ) : <VSCodeProgressRing/>}
         </table>
 
 
         <Label className='mt-[20px] font-bold'>Found Modules</Label>
-        {modules.map((module, i) => <FoundModule module={module} key={i}/>)}
+        {modules ? modules.map((module, i) => <FoundModule module={module} key={i}/>) : <VSCodeProgressRing/>}
 
         <hr className='opacity-25 my-2'></hr>
         <VSCodeButton onClick={async () => {
@@ -111,7 +110,7 @@ function SearchPath({path, index, onDelete, onChange, onMove}: SearchPathProps) 
         ></span>
         <VSCodeTextField
             className='grow py-1'
-            placeholder='default: inputs'
+            placeholder='Path'
             value={path}
             onChange={(e: any) => ''}
         >
