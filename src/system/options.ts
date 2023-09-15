@@ -33,7 +33,7 @@ const optionTypes = <OptionParser[]>[
     { canHandle: ['forceLngTier'], parse:  (options, name) => options[name] = false}, // false 
     { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0]}, // number
     { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options)}, // solverOptionsString
-    { canHandle: ['moduleList', 'includeModules', 'excludeModules'], parse: (options, name, params) => options[name] = params}, // list of strings 
+    { canHandle: ['moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath'], parse: (options, name, params) => options[name] = params}, // list of strings 
     { canHandle: () => true, parse: (options, name, params) => options[name] = params[0]}, // string. default option type
 ];
 
@@ -53,8 +53,8 @@ export async function getOptions(filePath: string): Promise<Options> {
     const content = await fs.readFile(filePath, 'utf8');
     const optionsInStr = content
         .split(new RegExp('\n'))
-        .filter(line => !line.startsWith('#'))
         .map(line => line.trim())
+        .filter(line => !line.startsWith('#'))
         .flatMap(line => line.split('--'))
         .filter(line => line !== '')
         .map(line => line.split(' '));

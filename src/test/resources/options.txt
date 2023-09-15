@@ -46,4 +46,7 @@
 --unit-contingency
 
 # smooth the dispatch schedule
-# --include-module switch_model.hawaii.smooth_dispatch --iterate-list iterate_smooth.txt
+--include-modules switch_model.hawaii.smooth_dispatch 
+# --iterate-list iterate_smooth.txt
+
+--module-search-path path1 path2 path3

@@ -1,14 +1,19 @@
 import * as vscode from 'vscode';
 import { Messenger } from "vscode-messenger";
-import { CreateFolder, GetOptions, SelectFile, SetOptions } from "../common/messages";
+import { CreateFolder, GetModules, GetOptions, InstallModule, SelectFile, SetOptions, UpdateModule } from "../common/messages";
 import { inject, injectable } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
+import { Module } from '../common/modules';
+import { ModulesHandler } from '../system/modules';
 
 @injectable()
 export class SwitchMessenger {
 
     @inject(OptionsFileHandler)
     private optionsFileHandler: OptionsFileHandler;
+
+    @inject(ModulesHandler)
+    private modulesHandler: ModulesHandler;
 
     private messenger: Messenger;
 
@@ -38,6 +43,16 @@ export class SwitchMessenger {
         this.messenger.onRequest(GetOptions, async () => {
             const options = await this.optionsFileHandler.getOptions();
             return options;
+        });
+        this.messenger.onRequest(GetModules, async () => {
+            console.log('Get modules');
+            return await this.modulesHandler.loadModules();
+        });
+        this.messenger.onNotification(UpdateModule, async (module: Module) => {
+            this.modulesHandler.updateModule(module);
+        });
+        this.messenger.onRequest(InstallModule, async () => {
+            this.modulesHandler.installNewModule();
         });
     }
 

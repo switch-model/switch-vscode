@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { Options, getOptions } from '../common/options';
+import { Options } from '../common/options';
+import { getOptions } from '../system/options';
+
 
 describe('Parsing of `options.txt`', () => {
 
@@ -24,6 +26,8 @@ describe('Parsing of `options.txt`', () => {
 			"streamSolver": true,
 			"unitContingency": true,
 			"verbose": true,
+			"includeModules": ["switch_model.hawaii.smooth_dispatch"],
+			"moduleSearchPath": ["path1", "path2", "path3"]
 		});
 	});
 });

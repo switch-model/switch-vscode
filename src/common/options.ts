@@ -16,7 +16,13 @@ export type Options = {
     demandResponseReserveTypes?: ReserveTypes,
     evReserveTypes?: ReserveTypes,
     unitContingency?: true,
-    spinningRequirementRule?: string
+    spinningRequirementRule?: string,
+
+    moduleList?: string,
+    includeModules?: string[],
+    excludeModules?: string[],
+    
+    moduleSearchPath?: string[], 
 };
 
 export type SolverOptionsString = {
