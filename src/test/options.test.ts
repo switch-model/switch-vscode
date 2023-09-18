@@ -1,13 +1,17 @@
+import "reflect-metadata";
+
 import { describe, expect, test } from 'vitest';
 import { Options } from '../common/options';
-import { getOptions } from '../system/options';
+import { getOptions } from '../system/options-parser';
+import fs from 'fs';
 
 
 describe('Parsing of `options.txt`', () => {
 
     test('should parse `options.txt` correctly', async () => {
-		const filePath = './src/test/resources/options.txt';
-		expect(getOptions(filePath)).toStrictEqual(<Options>{
+        const filePath = './src/test/resources/options.txt';
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+		expect(getOptions(content)).toStrictEqual(<Options>{
 			"contingencyReserveType": "contingency",
 			"demandResponseReserveTypes": "regulation",
 			"demandResponseShare": 0.1,

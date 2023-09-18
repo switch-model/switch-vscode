@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { VSCodeButton, VSCodeDropdown, VSCodeOption, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { Messenger } from "vscode-messenger-webview";
-import { SelectFile } from '../common/messages';
+import { GetOptions, SelectFile, SetOptions } from '../common/messages';
 import { Button } from './components/button';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -15,6 +15,23 @@ messenger.start();
 function InputView(): React.JSX.Element {
     const [filePath, setFilePath] = React.useState('');
     const [create, setCreate] = React.useState(false);
+
+    React.useEffect(() => {
+        messenger.sendNotification(SetOptions, { type: 'extension' }, {
+            name: 'inputsDir',
+            params: filePath.length > 0 ? [filePath] : undefined
+        });
+    }, [filePath]);
+
+    React.useEffect(() => {
+        (async () => {
+            const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
+            if (options?.inputsDir) {
+                setFilePath(options.inputsDir);
+            }
+        })();
+    }, []);
+
     return <Layout direction='vertical'>
         <Label>Inputs Folder</Label>
         <Layout direction='horizontal'>
@@ -22,7 +39,9 @@ function InputView(): React.JSX.Element {
                 className='grow m-1'
                 placeholder='default: inputs'
                 value={filePath}
-                onChange={(e: any) => setFilePath(e.target.value)}
+                onChange={(e: any) => {
+                    setFilePath(e.target.value);
+                }}
             >
                 <div slot="end" className='flex align-items-center'>
                     <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => { 

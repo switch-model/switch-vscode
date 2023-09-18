@@ -65,6 +65,8 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.33",
     "@vscode/webview-ui-toolkit": "^1.2.2",
+    "async-mutex": "^0.4.0",
+    "chevrotain": "10.4.2",
     "inversify": "^6.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

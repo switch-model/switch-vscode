@@ -37,8 +37,8 @@ export class SwitchMessenger {
                 vscode.window.showErrorMessage('Failed to create folder: ' + err.message);
             }
         });
-        this.messenger.onNotification(SetOptions, options => {
-            console.log('Set options: ', options);
+        this.messenger.onNotification(SetOptions, async options => {
+            await this.optionsFileHandler.setOption(options.name, options.params);
         });
         this.messenger.onRequest(GetOptions, async () => {
             const options = await this.optionsFileHandler.getOptions();

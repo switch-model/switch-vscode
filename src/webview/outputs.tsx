@@ -17,7 +17,8 @@ function OutputView(): React.JSX.Element {
 
     React.useEffect(() => {
         messenger.sendNotification(SetOptions, { type: 'extension' }, {
-            outputsDir: filePath.length > 0 ? filePath : undefined
+            name: 'outputsDir',
+            params: filePath.length > 0 ? [filePath] : undefined
         });
     }, [filePath]);
 
@@ -28,7 +29,7 @@ function OutputView(): React.JSX.Element {
                 setFilePath(options.outputsDir);
             }
         })();
-    });
+    }, []);
 
     return <Layout direction='vertical'>
         <Label>Outputs Folder</Label>

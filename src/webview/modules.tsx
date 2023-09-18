@@ -223,7 +223,7 @@ function ComplexOption({option}: OptionProps) {
 
 function onOptionChange(option: ModuleOption, newValue: any) {
     option.value = newValue;
-    messenger.sendNotification(SetOptions, {type: 'extension'}, {[option.name]: newValue});
+    messenger.sendNotification(SetOptions, {type: 'extension'}, { name: option.name, params: Array.isArray(newValue) ? newValue : [newValue.toString()] });
 }
 
 const main = document.getElementById('main')!;

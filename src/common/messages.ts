@@ -11,7 +11,12 @@ export const CreateFolder: NotificationType<string> = {
     method: 'CreateFolder'
 };
 
-export const SetOptions: NotificationType<Partial<Options>> = {
+export interface OptionsSetter {
+    name: string
+    params?: string[]
+}
+
+export const SetOptions: NotificationType<OptionsSetter> = {
     method: 'SetOptions'
 };
 
