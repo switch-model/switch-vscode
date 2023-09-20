@@ -1,6 +1,7 @@
 {
   "name": "switch-vscode",
   "displayName": "switch-vscode",
+  "publisher": "switch-model",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -9,7 +10,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:options.txt"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "views": {

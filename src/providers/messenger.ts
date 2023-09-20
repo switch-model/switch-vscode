@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { Messenger } from "vscode-messenger";
-import { CreateFolder, GetModules, GetOptions, InstallModule, SelectFile, SetOptions, UpdateModule } from "../common/messages";
-import { inject, injectable } from 'inversify';
+import { Messenger, ViewOptions } from "vscode-messenger";
+import { CreateFolder, GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from "../common/messages";
+import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
 import { ModulesHandler } from '../system/modules';
@@ -56,6 +56,15 @@ export class SwitchMessenger {
         });
     }
 
+    @postConstruct()
+    protected init() {
+        this.optionsFileHandler.onDidUpdate(() => {
+            this.messenger.sendNotification(OptionsUpdated, {
+                type: 'broadcast'
+            });
+        });
+    }
+
     private getUri(folder: string): vscode.Uri {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         let uri: vscode.Uri;
@@ -67,11 +76,11 @@ export class SwitchMessenger {
         return uri;
     }
 
-    registerWebview(view: vscode.WebviewView | vscode.WebviewPanel): void {
+    registerWebview(view: vscode.WebviewView | vscode.WebviewPanel, options?: ViewOptions): void {
         if ('show' in view) {
-            this.messenger.registerWebviewView(view);
+            this.messenger.registerWebviewView(view, options);
         } else {
-            this.messenger.registerWebviewPanel(view);
+            this.messenger.registerWebviewPanel(view, options);
         }
     }
 

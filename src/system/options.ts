@@ -9,6 +9,10 @@ import { Mutex } from 'async-mutex';
 export class OptionsFileHandler {
 
     private mutex = new Mutex();
+    private onDidUpdateEmitter = new vscode.EventEmitter<void>();
+    private lastWrite = 0;
+
+    onDidUpdate = this.onDidUpdateEmitter.event;
 
     async getOptions(): Promise<Options | undefined> {
         return this.mutex.runExclusive(async () => {
@@ -18,7 +22,6 @@ export class OptionsFileHandler {
                     const byteContent = await vscode.workspace.fs.readFile(uri);
                     const content = byteContent.toString();
                     const options = getOptions(content);
-                    console.log('Options: ', options);
                     return options;
                 }
             } catch {
@@ -31,17 +34,43 @@ export class OptionsFileHandler {
     async setOption(name: string, params?: string[]): Promise<void> {
         return this.mutex.runExclusive(async () => {
             try {
-                const uri = await this.getOptionsUri();
+                let uri = await this.getOptionsUri();
+                let content = '';
                 if (uri) {
                     const byteContent = await vscode.workspace.fs.readFile(uri);
-                    const content = byteContent.toString();
+                    content = byteContent.toString();
+                } else if (vscode.workspace.workspaceFolders[0]) {
+                    uri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, 'options.txt');
+                }
+                if (uri) {
                     const updatedContent = setOption(content, name, params);
                     const encoder = new TextEncoder();
                     await vscode.workspace.fs.writeFile(uri, encoder.encode(updatedContent));
+                    this.lastWrite = Date.now();
                 }
             } catch {
-            } 
+            }
         });
+    }
+    
+    watch(): vscode.Disposable {
+        const watcher = vscode.workspace.createFileSystemWatcher('**/options.txt');
+        watcher.onDidChange(e => this.emitUpdate(e));
+        watcher.onDidCreate(e => this.emitUpdate(e));
+        watcher.onDidDelete(e => this.emitUpdate(e));
+        return watcher;
+    }
+
+    private async emitUpdate(uri: vscode.Uri) {
+        try {
+            const stat = await vscode.workspace.fs.stat(uri);
+            if (stat.mtime > this.lastWrite) {
+                this.onDidUpdateEmitter.fire();
+            }
+        } catch {
+            // I.e. the file has been deleted
+            this.onDidUpdateEmitter.fire();
+        }
     }
 
     private async getOptionsUri(): Promise<vscode.Uri | undefined> {

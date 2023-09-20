@@ -13,21 +13,24 @@ const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
 
 function OutputView(): React.JSX.Element {
+    const isInitialMount = React.useRef(true);
     const [filePath, setFilePath] = React.useState('');
-
+    
     React.useEffect(() => {
-        messenger.sendNotification(SetOptions, { type: 'extension' }, {
-            name: 'outputsDir',
-            params: filePath.length > 0 ? [filePath] : undefined
-        });
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+        } else {
+            messenger.sendNotification(SetOptions, { type: 'extension' }, {
+                name: 'outputsDir',
+                params: filePath.length > 0 ? [filePath] : undefined
+            });
+        }
     }, [filePath]);
 
     React.useEffect(() => {
         (async () => {
             const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
-            if (options?.outputsDir) {
-                setFilePath(options.outputsDir);
-            }
+            setFilePath(options.outputsDir ?? '');
         })();
     }, []);
 

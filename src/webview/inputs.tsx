@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { VSCodeButton, VSCodeDropdown, VSCodeOption, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { Messenger } from "vscode-messenger-webview";
-import { GetOptions, SelectFile, SetOptions } from '../common/messages';
+import { CreateFolder, GetOptions, OptionsUpdated, SelectFile, SetOptions } from '../common/messages';
 import { Button } from './components/button';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -13,23 +13,30 @@ const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
 
 function InputView(): React.JSX.Element {
+    const isInitialMount = React.useRef(true);
     const [filePath, setFilePath] = React.useState('');
     const [create, setCreate] = React.useState(false);
+    const [creationOption, setCreationOption] = React.useState(inputCreationOptions[0]);
+
+    async function updateOptions() {
+        const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
+        setFilePath(options.inputsDir ?? '');
+    }
 
     React.useEffect(() => {
-        messenger.sendNotification(SetOptions, { type: 'extension' }, {
-            name: 'inputsDir',
-            params: filePath.length > 0 ? [filePath] : undefined
-        });
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+        } else {
+            messenger.sendNotification(SetOptions, { type: 'extension' }, {
+                name: 'inputsDir',
+                params: filePath.length > 0 ? [filePath] : undefined
+            });
+        }
     }, [filePath]);
 
     React.useEffect(() => {
-        (async () => {
-            const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
-            if (options?.inputsDir) {
-                setFilePath(options.inputsDir);
-            }
-        })();
+        updateOptions();
+        messenger.onNotification(OptionsUpdated, () => updateOptions());
     }, []);
 
     return <Layout direction='vertical'>
@@ -65,18 +72,24 @@ function InputView(): React.JSX.Element {
                 </div>
             </VSCodeTextField>
         </Layout>
-        <Button onClick={() => setCreate(true)}>Create</Button>
+        <Button onClick={() => setCreate(!create)}>{ create ? 'Close' : 'Create' }</Button>
         {create && <Layout direction='vertical'>
             <hr className='opacity-25 my-2'></hr>
-            <InputFolderPane close={() => setCreate(false)}/>
+            <Label>Create Using</Label>
+            <Layout direction='horizontal'>
+                <VSCodeDropdown className="grow m-1" value={creationOption} onChange={(e: any) => setCreationOption(e.target.value)}>
+                    {
+                        inputCreationOptions.map(option => <VSCodeOption key={option}>{option}</VSCodeOption>)
+                    }
+                </VSCodeDropdown>
+                <Button className='grow-0' onClick={() => {
+                    messenger.sendNotification(CreateFolder, { type: 'extension' }, filePath);
+                }}>Create</Button>
+            </Layout>
         </Layout>}
         <hr className='opacity-25 my-2'></hr>
         <Button>Validate</Button>
     </Layout>;
-}
-
-interface FolderPaneProps {
-    close(): void;
 }
 
 const inputCreationOptions = [
@@ -87,44 +100,6 @@ const inputCreationOptions = [
     'Python Script',
     'Switch Example'
 ];
-
-function InputFolderPane(props: FolderPaneProps): React.JSX.Element {
-    const [canClose, setCanClose] = React.useState(true);
-    const [creationOption, setCreationOption] = React.useState(inputCreationOptions[0]);
-    return <>
-        <Label>Folder Location</Label>
-        <VSCodeTextField
-            className='grow m-1'
-            placeholder='Select folder location'
-        >
-            <VSCodeButton slot="end" appearance="icon" title="Choose Folder" onClick={async () => {
-                const selection = await messenger.sendRequest(SelectFile, {
-                    type: 'extension'
-                }, {
-                    canSelectFiles: false,
-                    canSelectFolders: true,
-                    canSelectMany: false
-                });
-                const value = selection[0];
-                if (value) {
-                    console.log(value);
-                }
-            }}>
-                <span className="codicon codicon-folder-opened"></span>
-            </VSCodeButton>
-        </VSCodeTextField>
-        <Label>Create Using</Label>
-        <Layout direction='horizontal'>
-            <VSCodeDropdown className="grow m-1" value={creationOption} onChange={(e: any) => setCreationOption(e.target.value)}>
-                {
-                    inputCreationOptions.map(option => <VSCodeOption key={option}>{option}</VSCodeOption>)
-                }
-            </VSCodeDropdown>
-            <Button className='grow-0'>Apply</Button>
-        </Layout>
-        <Button disabled={!canClose} onClick={() => props.close()}>Close</Button>
-    </>;
-}
 
 const main = document.getElementById('main')!;
 ReactDOM.render(<InputView />, main);

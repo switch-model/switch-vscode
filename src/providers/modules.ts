@@ -3,6 +3,7 @@ import { generateHtml } from './utils';
 import { inject, injectable } from 'inversify';
 import { SwitchMessenger } from './messenger';
 import { ExtensionContext } from '../constants';
+import { OptionsUpdated } from '../common/messages';
 
 @injectable()
 export class ModulesViewProvider implements vscode.WebviewViewProvider {
@@ -22,7 +23,9 @@ export class ModulesViewProvider implements vscode.WebviewViewProvider {
 		_token: vscode.CancellationToken,
 	) {
 		this._view = webviewView;
-        this.messenger.registerWebview(webviewView);
+        this.messenger.registerWebview(webviewView, {
+            broadcastMethods: [OptionsUpdated.method]
+        });
 
 		webviewView.webview.options = {
 			// Allow scripts in the webview

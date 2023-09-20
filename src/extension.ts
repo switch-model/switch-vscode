@@ -10,6 +10,7 @@ import { ModulesViewProvider } from './providers/modules';
 import { Container } from 'inversify';
 import containerModule from './container-module';
 import { ExtensionContext } from './constants';
+import { OptionsFileHandler } from './system/options';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -35,6 +36,10 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.registerWebviewViewProvider(OutputsViewProvider.viewType, outputsViewProvider),
         vscode.window.registerWebviewViewProvider(SolverViewProvider.viewType, solverViewProvider)
     );
+
+    const optionsFileHandler = container.get(OptionsFileHandler);
+
+    context.subscriptions.push(optionsFileHandler.watch());
 }
 
 // This method is called when your extension is deactivated

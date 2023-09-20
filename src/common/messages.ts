@@ -24,6 +24,10 @@ export const GetOptions: RequestType<void, Options | undefined> = {
     method: 'GetOptions'
 };
 
+export const OptionsUpdated: NotificationType<void> = {
+    method: 'OptionsUpdated'
+};
+
 
 // modules webview
 export const GetModules: RequestType<void, Module[]> = {
