@@ -2,6 +2,7 @@ import type * as vscode from 'vscode';
 import { RequestType, NotificationType } from "vscode-messenger-common";
 import { Options } from './options';
 import { Module } from './modules';
+import { Scenario } from './scenarios';
 
 export const SelectFile: RequestType<vscode.OpenDialogOptions, string[]> = {
     method: 'SelectFile'
@@ -10,6 +11,11 @@ export const SelectFile: RequestType<vscode.OpenDialogOptions, string[]> = {
 export const CreateFolder: NotificationType<string> = {
     method: 'CreateFolder'
 };
+
+export const CreateFile: NotificationType<string> = {
+    method: 'CreateFile'
+};
+
 
 export interface OptionsSetter {
     name: string
@@ -20,8 +26,16 @@ export const SetOptions: NotificationType<OptionsSetter> = {
     method: 'SetOptions'
 };
 
+export const SetMixedOptions: NotificationType<OptionsSetter> = {
+    method: 'SetMixedOptions'
+};
+
 export const GetOptions: RequestType<void, Options | undefined> = {
     method: 'GetOptions'
+};
+
+export const GetFullOptions: RequestType<void, Options | undefined> = {
+    method: 'GetFullOptions'
 };
 
 export const OptionsUpdated: NotificationType<void> = {
@@ -40,4 +54,22 @@ export const UpdateModule: NotificationType<Module> = {
 
 export const InstallModule: RequestType<string, void> = {
     method: 'InstallModule'
+};
+
+
+// scenario webview
+export const SetScenariosPath: RequestType<string, Scenario[]> = {
+    method: 'SetScenariosPath'
+};
+
+export const SetScenarioOptions: NotificationType<OptionsSetter> = {
+    method: 'SetScenarioOptions'
+};
+
+export const GetScenarios: RequestType<string, Scenario[]> = {
+    method: 'GetScenarios'
+};
+
+export const SelectScenario: NotificationType<string> = {
+    method: 'SelectScenario'
 };

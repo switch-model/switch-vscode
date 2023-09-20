@@ -1,5 +1,6 @@
 import { EmbeddedActionsParser, Lexer, createToken } from 'chevrotain';
 import { Options } from '../common/options';
+import { Scenario, isScenario } from '../common/scenarios';
 import _ from 'lodash';
 
 type OptionParser = {
@@ -26,8 +27,8 @@ function parseQuotedOptionsString(params: string[], options: Options) {
     Object.assign(options, { solverOptionsString });
 }
 
-export function getOptions(content: string): Options {
-    const optionsInStr = parseOptions(content);
+export function getOptions(content: string, offset?: number): Options {
+    const optionsInStr = parseOptions(content, offset);
     
     let resOptions: Options = {};
     for (const option of optionsInStr.options) {
@@ -41,12 +42,49 @@ export function getOptions(content: string): Options {
     return resOptions;
 }
 
+export function getScenarios(content: string): Scenario[] {
+    const lines = content.split('\n');
+    let offset = 0;
+    const scenarios: Scenario[] = [];
+    for (const line of lines) {
+        const scenarioOptions = getOptions(line, offset);
+        if (isScenario(scenarioOptions)) {
+            scenarios.push(scenarioOptions);
+        }
+        offset += line.length + 1;
+    }
+    return scenarios;
+}
+
+export function setScenarioOption(content: string, scenarioName: string, optionName: string, params?: string[]): string {
+    const lines = content.split('\n');
+    let offset = 0;
+    for (const line of lines) {
+        const scenarioOptions = parseOptions(line, offset);
+        if (scenarioOptions.options.find(e => e.name === '--scenario-name' && e.values[0]?.value === scenarioName)) {
+            return setOptionInternal(scenarioOptions, content, optionName, params, { newline: false, offset: offset + line.trimEnd().length });
+        }
+        offset += line.length + 1;
+    }
+    return content;
+}
+
+interface SetOptionsConfig {
+    newline?: boolean
+    offset?: number
+}
+
 export function setOption(content: string, name: string, params?: string[]): string {
     const options = parseOptions(content);
+    return setOptionInternal(options, content, name, params, { newline: true });
+}
+
+export function setOptionInternal(options: InternalOptions, content: string, name: string, params?: string[], config?: SetOptionsConfig): string {
     const optionName = '--' + _.kebabCase(name);
     let append = true;
-    let start = content.length;
-    let end = content.length;
+    const contentOffset = config.offset === undefined ? content.length : config.offset;
+    let start = contentOffset;
+    let end = contentOffset;
     for (const option of options.options) {
         if (option.name === optionName) {
             start = option.offset;
@@ -57,16 +95,27 @@ export function setOption(content: string, name: string, params?: string[]): str
     }
     const escapedParameters = params?.map(e => escapeOptionsValue(e));
     const optionContent = params ? [optionName, ...escapedParameters].join(' ') : '';
-    if (append) {
-        if (content.charAt(content.length - 1) !== '\n') {
-            content += (content.includes('\r\n') ? '\r\n' : '\n');
+    let insert = '';
+    if (append && optionContent) {
+        if (config?.newline) {
+            if (content.charAt(contentOffset - 1) !== '\n') {
+                insert = (content.includes('\r\n') ? '\r\n' : '\n');
+            } else {
+                start += 1;
+                end += 1;
+            }
+        } else {
+            if (content.charAt(contentOffset) !== ' ') {
+                insert = ' ';
+            } else {
+                start += 1;
+                end += 1;
+            }
         }
-        content += optionContent;
-    } else {
-        const startContent = content.substring(0, start);
-        const endContent = content.substring(end);
-        content = startContent + optionContent + endContent;
     }
+    const startContent = content.substring(0, start);
+    const endContent = content.substring(end);
+    content = startContent + insert + optionContent + endContent;
     return content;
 }
 
@@ -80,9 +129,10 @@ export function escapeOptionsValue(value: string): string {
     }
 }
 
-export function parseOptions(text: string): InternalOptions {
+export function parseOptions(text: string, offset?: number): InternalOptions {
     const lexerResult = optionsLexer.tokenize(text);
     parser.input = lexerResult.tokens;
+    parser.offset = offset ?? 0;
     const parseResult = parser.options();
     return parseResult;
 }
@@ -139,6 +189,8 @@ const optionsLexer = new Lexer(tokens, {
 
 class OptionsParser extends EmbeddedActionsParser {
 
+    offset = 0;
+
     constructor() {
         super(tokens, {
             recoveryEnabled: true
@@ -192,8 +244,8 @@ class OptionsParser extends EmbeddedActionsParser {
             });
         });
         return {
-            offset: name.startOffset,
-            end: end + 1,
+            offset: name.startOffset + this.offset,
+            end: end + 1 + this.offset,
             name: name.image,
             values
         } as OptionEntry;

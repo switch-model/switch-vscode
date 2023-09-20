@@ -2,10 +2,11 @@ import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { VSCodeButton, VSCodeDropdown, VSCodeOption, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { Messenger } from "vscode-messenger-webview";
-import { CreateFolder, GetOptions, OptionsUpdated, SelectFile, SetOptions } from '../common/messages';
+import { CreateFolder, SelectFile, SetMixedOptions } from '../common/messages';
 import { Button } from './components/button';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
+import { optionsEffect, useDelayedEffect } from './components/effect';
 
 const vscode = acquireVsCodeApi();
 
@@ -13,31 +14,20 @@ const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
 
 function InputView(): React.JSX.Element {
-    const isInitialMount = React.useRef(true);
     const [filePath, setFilePath] = React.useState('');
     const [create, setCreate] = React.useState(false);
     const [creationOption, setCreationOption] = React.useState(inputCreationOptions[0]);
 
-    async function updateOptions() {
-        const options = await messenger.sendRequest(GetOptions, { type: 'extension' });
-        setFilePath(options.inputsDir ?? '');
-    }
-
-    React.useEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
-        } else {
-            messenger.sendNotification(SetOptions, { type: 'extension' }, {
-                name: 'inputsDir',
-                params: filePath.length > 0 ? [filePath] : undefined
-            });
-        }
+    useDelayedEffect(() => {
+        messenger.sendNotification(SetMixedOptions, { type: 'extension' }, {
+            name: 'inputsDir',
+            params: filePath.length > 0 ? [filePath] : undefined
+        });
     }, [filePath]);
 
-    React.useEffect(() => {
-        updateOptions();
-        messenger.onNotification(OptionsUpdated, () => updateOptions());
-    }, []);
+    optionsEffect(messenger, options => {
+        setFilePath(options.inputsDir ?? '');
+    });
 
     return <Layout direction='vertical'>
         <Label>Inputs Folder</Label>

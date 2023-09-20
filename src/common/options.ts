@@ -22,7 +22,10 @@ export type Options = {
     includeModules?: string[],
     excludeModules?: string[],
     
-    moduleSearchPath?: string[], 
+    moduleSearchPath?: string[],
+    scenarioList?: string,
+
+    evTiming?: string,
 };
 
 export type SolverOptionsString = {
@@ -32,4 +35,4 @@ export type SolverOptionsString = {
     advance?: number,
 };
 
-export type ReserveTypes = 'regulation' | 'contingency';
+export type ReserveTypes = 'regulation' | 'contingency' | 'none';

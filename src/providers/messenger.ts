@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Messenger, ViewOptions } from "vscode-messenger";
-import { CreateFolder, GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from "../common/messages";
+import { CreateFile, CreateFolder, GetFullOptions, GetModules, GetOptions, GetScenarios, InstallModule, OptionsUpdated, SelectFile, SelectScenario, SetMixedOptions, SetOptions, SetScenarioOptions, SetScenariosPath, UpdateModule } from "../common/messages";
 import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -37,15 +37,35 @@ export class SwitchMessenger {
                 vscode.window.showErrorMessage('Failed to create folder: ' + err.message);
             }
         });
+        this.messenger.onNotification(CreateFile, async (file) => {
+            try {
+                const uri = this.getUri(file);
+                await vscode.workspace.fs.writeFile(uri, new Uint8Array());
+            } catch (err: any) {
+                vscode.window.showErrorMessage('Failed to create file: ' + err.message);
+            }
+        });
         this.messenger.onNotification(SetOptions, async options => {
             await this.optionsFileHandler.setOption(options.name, options.params);
+            this.optionsUpdated();
+        });
+        this.messenger.onNotification(SetMixedOptions, async options => {
+            await this.optionsFileHandler.setMixedOption(options.name, options.params);
+            this.optionsUpdated();
+        });
+        this.messenger.onNotification(SetScenarioOptions, async options => {
+            await this.optionsFileHandler.setScenarioOption(options.name, options.params);
+            this.optionsUpdated();
         });
         this.messenger.onRequest(GetOptions, async () => {
             const options = await this.optionsFileHandler.getOptions();
             return options;
         });
+        this.messenger.onRequest(GetFullOptions, async () => {
+            const options = await this.optionsFileHandler.getFullOptions();
+            return options;
+        });
         this.messenger.onRequest(GetModules, async () => {
-            console.log('Get modules');
             return await this.modulesHandler.loadModules();
         });
         this.messenger.onNotification(UpdateModule, async (module: Module) => {
@@ -54,14 +74,28 @@ export class SwitchMessenger {
         this.messenger.onRequest(InstallModule, async () => {
             this.modulesHandler.installNewModule();
         });
+        this.messenger.onRequest(GetScenarios, async (filePath: string) => {
+            return await this.optionsFileHandler.getScenarios(filePath);
+        });
+        this.messenger.onRequest(SetScenariosPath, async (filePath: string) => {
+            return this.optionsFileHandler.setScenarios(filePath);
+        });
+        this.messenger.onNotification(SelectScenario, name => {
+            this.optionsFileHandler.selectedScenario = name;
+            this.optionsUpdated();
+        });
+    }
+
+    private optionsUpdated(): void {
+        this.messenger.sendNotification(OptionsUpdated, {
+            type: 'broadcast'
+        });
     }
 
     @postConstruct()
     protected init() {
         this.optionsFileHandler.onDidUpdate(() => {
-            this.messenger.sendNotification(OptionsUpdated, {
-                type: 'broadcast'
-            });
+            this.optionsUpdated();
         });
     }
 
