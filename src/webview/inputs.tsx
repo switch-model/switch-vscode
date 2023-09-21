@@ -33,7 +33,7 @@ function InputView(): React.JSX.Element {
         <Label>Inputs Folder</Label>
         <Layout direction='horizontal'>
             <VSCodeTextField
-                className='grow m-1'
+                className='grow'
                 placeholder='default: inputs'
                 value={filePath}
                 onChange={(e: any) => {
@@ -62,23 +62,23 @@ function InputView(): React.JSX.Element {
                 </div>
             </VSCodeTextField>
         </Layout>
-        <Button onClick={() => setCreate(!create)}>{create ? 'Close' : 'Create'}</Button>
+        <Button disabled title="This feature is work in progress" className='mt-1' onClick={() => setCreate(!create)}>{create ? 'Close' : 'Create'}</Button>
         {create && <Layout direction='vertical'>
             <hr className='opacity-25 my-2'></hr>
             <Label>Create Using</Label>
             <Layout direction='horizontal'>
-                <VSCodeDropdown className="grow m-1" value={creationOption} onChange={(e: any) => setCreationOption(e.target.value)}>
+                <VSCodeDropdown className="grow" value={creationOption} onChange={(e: any) => setCreationOption(e.target.value)}>
                     {
                         inputCreationOptions.map(option => <VSCodeOption key={option}>{option}</VSCodeOption>)
                     }
                 </VSCodeDropdown>
-                <Button className='grow-0' onClick={() => {
+                <Button className='grow-0 ml-1' onClick={() => {
                     messenger.sendNotification(CreateFolder, { type: 'extension' }, filePath);
                 }}>Create</Button>
             </Layout>
         </Layout>}
         <hr className='opacity-25 my-2'></hr>
-        <Button>Validate</Button>
+        <Button disabled title="This feature is work in progress">Validate</Button>
     </Layout>;
 }
 

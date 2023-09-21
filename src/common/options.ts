@@ -11,10 +11,10 @@ export type Options = {
     forceLngTier?: false,
     rpsAllocation?: string,
     demandResponseShare?: number,
-    contingencyReserveType?: ReserveTypes,
-    regulatingReserveType?: ReserveTypes,
-    demandResponseReserveTypes?: ReserveTypes,
-    evReserveTypes?: ReserveTypes,
+    contingencyReserveType?: ReserveTypes[],
+    regulatingReserveType?: ReserveTypes[],
+    demandResponseReserveTypes?: ReserveTypes[],
+    evReserveTypes?: ReserveTypes[],
     unitContingency?: true,
     spinningRequirementRule?: string,
 
@@ -35,4 +35,4 @@ export type SolverOptionsString = {
     advance?: number,
 };
 
-export type ReserveTypes = 'regulation' | 'contingency' | 'none';
+export type ReserveTypes = 'regulation' | 'contingency';

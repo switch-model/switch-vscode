@@ -4,16 +4,22 @@ import { Scenario, isScenario } from '../common/scenarios';
 import _ from 'lodash';
 
 type OptionParser = {
-    canHandle: string[] | ((option: string) => boolean);
+    canHandle: (keyof Options)[] | ((option: keyof Options) => boolean);
     parse: (options: Options, name: string, params: string[]) => void;
 };
 
-const optionTypes = <OptionParser[]>[
+const optionTypes: OptionParser[] = [
     { canHandle: ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency'], parse: (options, name) => options[name] = true }, // true
     { canHandle: ['forceLngTier'], parse: (options, name) => options[name] = false }, // false 
     { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0] }, // number
     { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options) }, // solverOptionsString
-    { canHandle: ['moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath'], parse: (options, name, params) => options[name] = params }, // list of strings 
+    {
+        canHandle: [
+            'moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath',
+            'contingencyReserveType', 'demandResponseReserveTypes', 'evReserveTypes', 'regulatingReserveType'
+        ],
+        parse: (options, name, params) => options[name] = params
+    }, // list of strings 
     { canHandle: () => true, parse: (options, name, params) => options[name] = params[0] }, // string. default option type
 ];
 

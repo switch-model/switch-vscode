@@ -11,11 +11,12 @@ export class OptionsFileHandler {
 
     private mutex = new Mutex();
     private onDidUpdateEmitter = new vscode.EventEmitter<void>();
-    private lastWrite = 0;
+    private lastOptionsWrite = 0;
     private lastOptions?: Options;
     private lastScenarios?: Scenario[];
 
     private _selectedScenario?: string;
+    private scenarioWatcher?: vscode.FileSystemWatcher;
 
     get selectedScenario(): string | undefined {
         return this._selectedScenario;
@@ -56,6 +57,7 @@ export class OptionsFileHandler {
                 const content = byteContent.toString();
                 const options = getOptions(content);
                 this.lastOptions = options;
+                this.startScenarioUpdate(uri, this.getScenariosPath(options.scenarioList));
                 return options;
             }
         } catch {
@@ -77,7 +79,7 @@ export class OptionsFileHandler {
 
     private async doGetScenarios(filePath: string): Promise<Scenario[] | undefined> {
         try {
-            const uri = await this.getUri(filePath || 'scenarios.txt');
+            const uri = await this.getUri(this.getScenariosPath(filePath));
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
                 const content = byteContent.toString();
@@ -126,7 +128,7 @@ export class OptionsFileHandler {
                 const updatedContent = setOption(content, name, params);
                 const encoder = new TextEncoder();
                 await vscode.workspace.fs.writeFile(uri, encoder.encode(updatedContent));
-                this.lastWrite = Date.now();
+                this.lastOptionsWrite = Date.now();
             }
         } catch {
         }
@@ -142,17 +144,19 @@ export class OptionsFileHandler {
                 return;
             }
             const options = await this.doGetOptions();
-            const scenarioPath = options?.scenarioList ?? 'scenarios.txt';
+            const scenarioPath = this.getScenariosPath(options?.scenarioList);
             const uri = await this.getUri(scenarioPath);
             if (uri) {
+                this.lastScenarios = undefined;
                 const byteContent = await vscode.workspace.fs.readFile(uri);
                 const content = byteContent.toString();
                 const updatedContent = setScenarioOption(content, this.selectedScenario, name, params);
                 const encoder = new TextEncoder();
                 await vscode.workspace.fs.writeFile(uri, encoder.encode(updatedContent));
-                this.lastScenarios = undefined;
+                this.lastOptionsWrite = Date.now();
             }
-        } catch {
+        } catch (e) {
+            console.log(e);
         }
     }
 
@@ -170,7 +174,7 @@ export class OptionsFileHandler {
         }
         if (!this.lastScenarios) {
             const options = await this.doGetOptions();
-            const scenarioPath = options?.scenarioList ?? 'scenarios.txt';
+            const scenarioPath = this.getScenariosPath(options?.scenarioList);
             if (scenarioPath) {
                 await this.doGetScenarios(scenarioPath);
             }
@@ -185,28 +189,48 @@ export class OptionsFileHandler {
     private async emitUpdate(uri: vscode.Uri) {
         try {
             const stat = await vscode.workspace.fs.stat(uri);
-            if (stat.mtime > this.lastWrite) {
+            if (stat.mtime > this.lastOptionsWrite) {
                 this.lastOptions = undefined;
                 this.lastScenarios = undefined;
                 this.onDidUpdateEmitter.fire();
             }
         } catch {
             // I.e. the file has been deleted
+            this.lastOptions = undefined;
+            this.lastScenarios = undefined;
             this.onDidUpdateEmitter.fire();
         }
     }
 
-    private async getUri(path: string): Promise<vscode.Uri | undefined> {
+    private startScenarioUpdate(uri: vscode.Uri, pattern: string) {
+        if (this.scenarioWatcher) {
+            this.scenarioWatcher.dispose();
+        }
+        uri = vscode.Uri.joinPath(uri, '..');
+        const relativePattern = new vscode.RelativePattern(uri, pattern);
+        this.scenarioWatcher = vscode.workspace.createFileSystemWatcher(relativePattern);
+        this.scenarioWatcher.onDidChange(e => this.emitUpdate(e));
+        this.scenarioWatcher.onDidCreate(e => this.emitUpdate(e));
+        this.scenarioWatcher.onDidDelete(e => this.emitUpdate(e));
+    }
+
+    private async getUri(path: string, stat = true): Promise<vscode.Uri | undefined> {
         const workspaces = vscode.workspace.workspaceFolders || [];
         for (const workspace of workspaces) {
             const uri = vscode.Uri.joinPath(workspace.uri, path);
             try {
-                await vscode.workspace.fs.stat(uri);
+                if (stat) {
+                    await vscode.workspace.fs.stat(uri);
+                }
                 return uri;
             } catch {
                 // This is fine
             }
         }
         return undefined;
+    }
+
+    private getScenariosPath(filePath?: string): string {
+        return filePath || 'scenarios.txt';
     }
 }

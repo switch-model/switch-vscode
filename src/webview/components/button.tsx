@@ -9,5 +9,5 @@ export interface ButtonProps extends React.PropsWithChildren {
 }
 
 export function Button(props: ButtonProps): React.JSX.Element {
-    return <VSCodeButton {...props} className={'grow m-1 ' + (props.className ?? '')}></VSCodeButton>;
+    return <VSCodeButton {...props} className={'grow ' + (props.className ?? '')}></VSCodeButton>;
 }

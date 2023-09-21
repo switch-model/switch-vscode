@@ -6,5 +6,5 @@ export interface LabelProps {
 }
 
 export function Label(props: LabelProps): React.JSX.Element {
-    return <span className={'ml-1 mt-1 opacity-75 ' + props.className} >{props.children}</span>;
+    return <span className={'mt-1 opacity-75 ' + props.className} >{props.children}</span>;
 }

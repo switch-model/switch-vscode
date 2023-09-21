@@ -109,7 +109,7 @@ function SearchPath({ path, index, onDelete, onChange, onMove }: SearchPathProps
                 }}
             ></span>
             <VSCodeTextField
-                className='grow py-1 m-1'
+                className='grow py-1 mt-1'
                 placeholder='Path'
                 value={path}
                 onChange={(e: any) => ''}

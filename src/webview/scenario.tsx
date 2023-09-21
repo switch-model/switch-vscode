@@ -7,7 +7,7 @@ import { Button } from './components/button';
 import { Layout } from './components/layout';
 import { Scenario } from '../common/scenarios';
 import { optionsEffect, useDelayedEffect } from './components/effect';
-import { Options } from '../common/options';
+import { Options, ReserveTypes } from '../common/options';
 import { NotificationType } from 'vscode-messenger-common';
 import { Label } from './components/label';
 
@@ -44,10 +44,10 @@ function ScenarioView(): React.JSX.Element {
         });
     }, false);
 
-    return <Layout direction='vertical'>
+    return <Layout className='mb-2' direction='vertical'>
         <Layout direction='horizontal'>
             <VSCodeTextField
-                className='grow m-1'
+                className='grow'
                 placeholder='default: scenarios.txt'
                 value={filePath}
                 onChange={(e: any) => setFilePath(e.target.value)}
@@ -73,12 +73,12 @@ function ScenarioView(): React.JSX.Element {
                     </VSCodeButton>
                 </div>
             </VSCodeTextField>
-            <Button className='grow-0' onClick={() => {
+            <Button className='grow-0 ml-1' onClick={() => {
                 messenger.sendNotification(CreateFile, { type: 'extension' }, filePath);
             }}>New</Button>
         </Layout>
         <VSCodeDropdown
-            className='grow m-1 mt-2'
+            className='grow mt-2'
             onChange={(event) => setSelectedScenario(event.target.value === '(base)' ? undefined : event.target.value)}
         >
             <VSCodeOption key='(base)'>(base)</VSCodeOption>
@@ -122,28 +122,81 @@ function OptionsPanel({ scenario, options }: { scenario?: Scenario, options?: Op
             }
         }
     }
+    function setReserveTypes(name: keyof Options, value: boolean, type: ReserveTypes): void {
+        const array = (actualOptions?.[name] as ReserveTypes[] | undefined) ?? [];
+        const result = array.filter(e => e !== type) ?? [];
+        if (value) {
+            result.push(type);
+        }
+        setValue(name, result.length ? result : undefined);
+    }
     optionsChangeEnabled = false;
     setTimeout(() => {
         optionsChangeEnabled = true;
     }, 30);
+    
     return <Layout direction='vertical'>
         <Label>Inputs Directory</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.inputsDir ?? ''} onChange={e => setValue('inputsDir', e.target.value)}></VSCodeTextField>
+        <VSCodeTextField value={actualOptions?.inputsDir ?? ''} onChange={e => setValue('inputsDir', [e.target.value])}></VSCodeTextField>
         <Label>Outputs Directory</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.outputsDir ?? ''} onChange={e => setValue('outputsDir', e.target.value)}></VSCodeTextField>
-        <VSCodeCheckbox className='mx-1' checked={actualOptions?.verbose ?? false} onChange={e => setValue('verbose', e.target.checked ? [] : undefined)}>Verbose</VSCodeCheckbox>
-        <VSCodeCheckbox className='mx-1' checked={actualOptions?.streamSolver ?? false} onChange={e => setValue('streamSolver', e.target.checked ? [] : undefined)}>Stream Solver</VSCodeCheckbox>
-        <VSCodeCheckbox className='mx-1' checked={actualOptions?.sortedOutput ?? false} onChange={e => setValue('sortedOutput', e.target.checked ? [] : undefined)}>Sorted Output</VSCodeCheckbox>
-        <VSCodeCheckbox className='mx-1' checked={actualOptions?.forceLngTier ?? true} onChange={e => setValue('forceLngTier', e.target.checked ? undefined : ['none'])}>Force LNG Tier</VSCodeCheckbox>
-        <VSCodeCheckbox className='mx-1' checked={actualOptions?.unitContingency ?? false} onChange={e => setValue('unitContingency', e.target.checked ? [] : undefined)}>Unit Contigency</VSCodeCheckbox>
+        <VSCodeTextField className='mb-1' value={actualOptions?.outputsDir ?? ''} onChange={e => setValue('outputsDir', [e.target.value])}></VSCodeTextField>
+        <VSCodeCheckbox checked={actualOptions?.verbose ?? false} onChange={e => setValue('verbose', e.target.checked ? [] : undefined)}>Verbose</VSCodeCheckbox>
+        <VSCodeCheckbox checked={actualOptions?.streamSolver ?? false} onChange={e => setValue('streamSolver', e.target.checked ? [] : undefined)}>Stream Solver</VSCodeCheckbox>
+        <VSCodeCheckbox checked={actualOptions?.sortedOutput ?? false} onChange={e => setValue('sortedOutput', e.target.checked ? [] : undefined)}>Sorted Output</VSCodeCheckbox>
+        <VSCodeCheckbox checked={actualOptions?.forceLngTier ?? true} onChange={e => setValue('forceLngTier', e.target.checked ? undefined : ['none'])}>Force LNG Tier</VSCodeCheckbox>
+        <VSCodeCheckbox checked={actualOptions?.unitContingency ?? false} onChange={e => setValue('unitContingency', e.target.checked ? [] : undefined)}>Unit Contigency</VSCodeCheckbox>
         <Label>Solver</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.solver ?? ''} onChange={e => setValue('solver', e.target.value)}></VSCodeTextField>
+        <VSCodeTextField value={actualOptions?.solver ?? ''} onChange={e => setValue('solver', [e.target.value])}></VSCodeTextField>
         <Label>RPS Allocation</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.rpsAllocation ?? ''} onChange={e => setValue('rpsAllocation', e.target.value)}></VSCodeTextField>
+        <VSCodeTextField value={actualOptions?.rpsAllocation ?? ''} onChange={e => setValue('rpsAllocation', [e.target.value])}></VSCodeTextField>
         <Label>Spinning Requirement Rule</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.spinningRequirementRule ?? ''} onChange={e => setValue('spinningRequirementRule', e.target.value)}></VSCodeTextField>
+        <VSCodeTextField value={actualOptions?.spinningRequirementRule ?? ''} onChange={e => setValue('spinningRequirementRule', [e.target.value])}></VSCodeTextField>
         <Label>EV Timing</Label>
-        <VSCodeTextField className='m-1' value={actualOptions?.evTiming ?? ''} onChange={e => setValue('evTiming', e.target.value)}></VSCodeTextField>
+        <VSCodeTextField value={actualOptions?.evTiming ?? ''} onChange={e => setValue('evTiming', [e.target.value])}></VSCodeTextField>
+        <Label>Contingency Reserve Type</Label>
+        <Layout direction='horizontal'>
+            <VSCodeCheckbox
+                checked={actualOptions?.contingencyReserveType?.includes('regulation') ?? false}
+                onChange={e => setReserveTypes('contingencyReserveType', e.target.checked, 'regulation')}
+            >Regulation</VSCodeCheckbox>
+            <VSCodeCheckbox
+                checked={actualOptions?.contingencyReserveType?.includes('contingency') ?? false}
+                onChange={e => setReserveTypes('contingencyReserveType', e.target.checked, 'contingency')}
+            >Contingency</VSCodeCheckbox>
+        </Layout>
+        <Label>Regulating Reserve Type</Label>
+        <Layout direction='horizontal'>
+            <VSCodeCheckbox
+                checked={actualOptions?.regulatingReserveType?.includes('regulation') ?? false}
+                onChange={e => setReserveTypes('regulatingReserveType', e.target.checked, 'regulation')}
+            >Regulation</VSCodeCheckbox>
+            <VSCodeCheckbox
+                checked={actualOptions?.regulatingReserveType?.includes('contingency') ?? false}
+                onChange={e => setReserveTypes('regulatingReserveType', e.target.checked, 'contingency')}
+            >Contingency</VSCodeCheckbox>
+        </Layout>
+        <Label>Demand Response Reserve Type</Label>
+        <Layout direction='horizontal'>
+            <VSCodeCheckbox
+                checked={actualOptions?.demandResponseReserveTypes?.includes('regulation') ?? false}
+                onChange={e => setReserveTypes('demandResponseReserveTypes', e.target.checked, 'regulation')}
+            >Regulation</VSCodeCheckbox>
+            <VSCodeCheckbox
+                checked={actualOptions?.demandResponseReserveTypes?.includes('contingency') ?? false}
+                onChange={e => setReserveTypes('demandResponseReserveTypes', e.target.checked, 'contingency')}
+            >Contingency</VSCodeCheckbox>
+        </Layout>
+        <Label>EV Reserve Type</Label>
+        <Layout direction='horizontal'>
+            <VSCodeCheckbox
+                checked={actualOptions?.evReserveTypes?.includes('regulation') ?? false}
+                onChange={e => setReserveTypes('evReserveTypes', e.target.checked, 'regulation')}
+            >Regulation</VSCodeCheckbox>
+            <VSCodeCheckbox
+                checked={actualOptions?.evReserveTypes?.includes('contingency') ?? false}
+                onChange={e => setReserveTypes('evReserveTypes', e.target.checked, 'contingency')}
+            >Contingency</VSCodeCheckbox>
+        </Layout>
     </Layout>;
 }
 

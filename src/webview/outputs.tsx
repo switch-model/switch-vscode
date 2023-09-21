@@ -31,7 +31,7 @@ function OutputView(): React.JSX.Element {
         <Label>Outputs Folder</Label>
         <Layout direction='horizontal'>
             <VSCodeTextField
-                className='grow m-1'
+                className='grow'
                 placeholder='default: outputs'
                 value={filePath}
                 onChange={(e: any) => setFilePath(e.target.value)}
@@ -57,7 +57,7 @@ function OutputView(): React.JSX.Element {
                     </VSCodeButton>
                 </div>
             </VSCodeTextField>
-            <Button className='grow-0' onClick={() => {
+            <Button className='grow-0 ml-1' onClick={() => {
                 messenger.sendNotification(CreateFolder, { type: 'extension' }, filePath);
             }}>New</Button>
         </Layout>
