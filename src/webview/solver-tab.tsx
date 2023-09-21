@@ -13,9 +13,9 @@ messenger.start();
 
 class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], activeSolverId?: string }> {
 
-    constructor() {
-        super({});
-        this.state = { solvers: [] };
+    constructor(props: {}) {
+        super(props);
+        this.state = { solvers: [], activeSolverId: undefined };
     };
 
     async componentDidMount(): Promise<void> {

@@ -44,8 +44,8 @@ function ModulesView() {
                 .filter(module => module.active && module.options)
                 .flatMap(module => module.options)
                 .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
-                .map((option, i) => <tr className='my-1'>
-                    <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name}</Label></td>
+                .map((option, i) => <tr className='my-1' key={i}>
+                    <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name.replace(/^-+/, '')}</Label></td>
                     <td><Option option={option} key={i} /></td>
                 </tr>
                 ) : <VSCodeProgressRing />}
@@ -161,22 +161,21 @@ type OptionProps = {
 };
 
 function Option({ option }: OptionProps) {
-    switch (typeof option.value) {
-        case 'boolean':
-            return <BooleanOption option={option} />;
-        case 'string':
-            return <StringOption option={option} />;
-        case 'object':
-            return <ComplexOption option={option} />;
+    if(!option.nargs || option.nargs === 0) {
+        return <BooleanOption option={option} />;
+    } else if(option.nargs === 1) {
+        return <StringOption option={option} />;
+    } else {
+        return <ComplexOption option={option} />;
     }
 }
 
 function BooleanOption({ option }: OptionProps) {
-    return <VSCodeCheckbox checked={option.value as boolean} onChange={e => onOptionChange(option, e.target.checked)}></VSCodeCheckbox>;
+    return <VSCodeCheckbox checked={(option.value ?? option.default ?? false) as boolean} onChange={e => onOptionChange(option, e.target.checked)}></VSCodeCheckbox>;
 }
 
 function StringOption({ option }: OptionProps) {
-    return <VSCodeTextField className='w-full' value={option.value as string} onChange={e => onOptionChange(option, e.target.value)}>
+    return <VSCodeTextField className='w-full' value={(option.value ?? option.default ?? '') as string} onChange={e => onOptionChange(option, e.target.value)}>
         <div slot="end" className='flex align-items-center'>
             <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
                 option.value = await messenger.sendRequest(SelectFile, {
@@ -194,7 +193,7 @@ function StringOption({ option }: OptionProps) {
 }
 
 function ComplexOption({ option }: OptionProps) {
-    const [entries, setEntries] = React.useState(option.value as string[]);
+    const [entries, setEntries] = React.useState((option.value ?? option.default ?? []) as string[]);
     return <>
         {entries.map((entry, i) => <Layout direction='horizontal'>
             <VSCodeTextField className='grow' key={i} value={entry} onChange={e => {
