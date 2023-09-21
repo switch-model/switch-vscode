@@ -38,8 +38,8 @@ function ScenarioView(): React.JSX.Element {
 
     optionsEffect(messenger, (options) => {
         setOptions(options);
-        setFilePath(options.scenarioList ?? '');
-        messenger.sendRequest(GetScenarios, { type: 'extension' }, options.scenarioList).then(scenarios => {
+        setFilePath(options?.scenarioList ?? '');
+        messenger.sendRequest(GetScenarios, { type: 'extension' }, options?.scenarioList).then(scenarios => {
             setScenarios(scenarios ?? []);
         });
     }, false);
@@ -53,19 +53,19 @@ function ScenarioView(): React.JSX.Element {
                 onChange={(e: any) => setFilePath(e.target.value)}
             >
                 <div slot="end" className='flex align-items-center'>
-                    <VSCodeButton appearance="icon" title="Choose File" onClick={async () => { 
-                            const selection = await messenger.sendRequest(SelectFile, {
-                                type: 'extension'
-                            }, {
-                                canSelectFiles: true,
-                                canSelectFolders: false,
-                                canSelectMany: false
-                            });
-                            const value = selection[0];
-                            if (value) {
-                                setFilePath(value);
-                            }
-                        }}>
+                    <VSCodeButton appearance="icon" title="Choose File" onClick={async () => {
+                        const selection = await messenger.sendRequest(SelectFile, {
+                            type: 'extension'
+                        }, {
+                            canSelectFiles: true,
+                            canSelectFolders: false,
+                            canSelectMany: false
+                        });
+                        const value = selection[0];
+                        if (value) {
+                            setFilePath(value);
+                        }
+                    }}>
                         <span className="codicon codicon-folder-opened"></span>
                     </VSCodeButton>
                     <VSCodeButton appearance="icon" title="Clear Selection" onClick={() => setFilePath('')}>
@@ -98,14 +98,14 @@ function ScenarioView(): React.JSX.Element {
                     : "Options chosen below will be added to the base settings when running scenario."
             }
         </div>
-        <OptionsPanel options={options} scenario={getSelectedScenario()}/>
+        <OptionsPanel options={options} scenario={getSelectedScenario()} />
     </Layout>;
 }
 
 let optionsChangeEnabled = false;
 
 function OptionsPanel({ scenario, options }: { scenario?: Scenario, options?: Options }): React.JSX.Element {
-    const actualOptions: Options = scenario ?? options;
+    const actualOptions = scenario ?? options;
     function setValue(name: string, params?: string[]) {
         if (optionsChangeEnabled) {
             let method: NotificationType<OptionsSetter> | undefined;

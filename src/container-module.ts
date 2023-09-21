@@ -6,6 +6,8 @@ import { OutputsViewProvider } from './providers/outputs';
 import { ScenarioViewProvider } from './providers/scenario';
 import { SolverViewProvider } from './providers/solver';
 import { OptionsFileHandler } from "./system/options";
+import { SolverTabViewProvider } from "./providers/solver-tab";
+import { Solvers } from "./system/solvers";
 
 export default new ContainerModule(bind => {
     bind(SwitchMessenger).toSelf();
@@ -14,5 +16,6 @@ export default new ContainerModule(bind => {
     bind(OutputsViewProvider).toSelf();
     bind(ScenarioViewProvider).toSelf();
     bind(SolverViewProvider).toSelf();
+    bind(SolverTabViewProvider).toSelf();
     bind(OptionsFileHandler).toSelf();
 });

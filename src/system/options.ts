@@ -14,7 +14,7 @@ export class OptionsFileHandler {
     private lastWrite = 0;
     private lastOptions?: Options;
     private lastScenarios?: Scenario[];
-    
+
     private _selectedScenario?: string;
 
     get selectedScenario(): string | undefined {
@@ -118,7 +118,7 @@ export class OptionsFileHandler {
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
                 content = byteContent.toString();
-            } else if (vscode.workspace.workspaceFolders[0]) {
+            } else if (vscode.workspace.workspaceFolders?.[0]) {
                 uri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, 'options.txt');
             }
             if (uri) {
@@ -136,13 +136,13 @@ export class OptionsFileHandler {
         return this.mutex.runExclusive(() => this.doSetScenarioOption(name, params));
     }
 
-    private async doSetScenarioOption(name: string, params: string[]): Promise<void> {
+    private async doSetScenarioOption(name: string, params?: string[]): Promise<void> {
         try {
             if (!this.selectedScenario) {
                 return;
             }
             const options = await this.doGetOptions();
-            const scenarioPath = options.scenarioList ?? 'scenarios.txt';
+            const scenarioPath = options?.scenarioList ?? 'scenarios.txt';
             const uri = await this.getUri(scenarioPath);
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
@@ -155,7 +155,7 @@ export class OptionsFileHandler {
         } catch {
         }
     }
-    
+
     watch(): vscode.Disposable {
         const watcher = vscode.workspace.createFileSystemWatcher('**/options.txt');
         watcher.onDidChange(e => this.emitUpdate(e));
@@ -170,7 +170,7 @@ export class OptionsFileHandler {
         }
         if (!this.lastScenarios) {
             const options = await this.doGetOptions();
-            const scenarioPath = options.scenarioList ?? 'scenarios.txt';
+            const scenarioPath = options?.scenarioList ?? 'scenarios.txt';
             if (scenarioPath) {
                 await this.doGetScenarios(scenarioPath);
             }
@@ -197,7 +197,7 @@ export class OptionsFileHandler {
     }
 
     private async getUri(path: string): Promise<vscode.Uri | undefined> {
-        const workspaces = vscode.workspace.workspaceFolders;
+        const workspaces = vscode.workspace.workspaceFolders || [];
         for (const workspace of workspaces) {
             const uri = vscode.Uri.joinPath(workspace.uri, path);
             try {
@@ -210,4 +210,3 @@ export class OptionsFileHandler {
         return undefined;
     }
 }
-

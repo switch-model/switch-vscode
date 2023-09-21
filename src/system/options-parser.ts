@@ -9,12 +9,12 @@ type OptionParser = {
 };
 
 const optionTypes = <OptionParser[]>[
-    { canHandle: ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency'], parse: (options, name) => options[name] = true}, // true
-    { canHandle: ['forceLngTier'], parse:  (options, name) => options[name] = false}, // false 
-    { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0]}, // number
-    { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options)}, // solverOptionsString
-    { canHandle: ['moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath'], parse: (options, name, params) => options[name] = params}, // list of strings 
-    { canHandle: () => true, parse: (options, name, params) => options[name] = params[0]}, // string. default option type
+    { canHandle: ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency'], parse: (options, name) => options[name] = true }, // true
+    { canHandle: ['forceLngTier'], parse: (options, name) => options[name] = false }, // false 
+    { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0] }, // number
+    { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options) }, // solverOptionsString
+    { canHandle: ['moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath'], parse: (options, name, params) => options[name] = params }, // list of strings 
+    { canHandle: () => true, parse: (options, name, params) => options[name] = params[0] }, // string. default option type
 ];
 
 function parseQuotedOptionsString(params: string[], options: Options) {
@@ -29,15 +29,15 @@ function parseQuotedOptionsString(params: string[], options: Options) {
 
 export function getOptions(content: string, offset?: number): Options {
     const optionsInStr = parseOptions(content, offset);
-    
+
     let resOptions: Options = {};
     for (const option of optionsInStr.options) {
         const name = _.camelCase(option.name.substring(2)) as keyof Options;
         const params = option.values;
-        optionTypes.find(optionType => typeof optionType.canHandle === 'function' ? 
-                                        optionType.canHandle(name) : 
-                                        optionType.canHandle.includes(name)
-            )?.parse(resOptions, name, params.map(e => e.value)); 
+        optionTypes.find(optionType => typeof optionType.canHandle === 'function' ?
+            optionType.canHandle(name) :
+            optionType.canHandle.includes(name)
+        )?.parse(resOptions, name, params.map(e => e.value));
     }
     return resOptions;
 }
@@ -79,7 +79,7 @@ export function setOption(content: string, name: string, params?: string[]): str
     return setOptionInternal(options, content, name, params, { newline: true });
 }
 
-export function setOptionInternal(options: InternalOptions, content: string, name: string, params?: string[], config?: SetOptionsConfig): string {
+export function setOptionInternal(options: InternalOptions, content: string, name: string, params: string[] | undefined, config: SetOptionsConfig): string {
     const optionName = '--' + _.kebabCase(name);
     let append = true;
     const contentOffset = config.offset === undefined ? content.length : config.offset;
@@ -93,7 +93,7 @@ export function setOptionInternal(options: InternalOptions, content: string, nam
             break;
         }
     }
-    const escapedParameters = params?.map(e => escapeOptionsValue(e));
+    const escapedParameters = params?.map(e => escapeOptionsValue(e)) || [];
     const optionContent = params ? [optionName, ...escapedParameters].join(' ') : '';
     let insert = '';
     if (append && optionContent) {
@@ -213,7 +213,7 @@ class OptionsParser extends EmbeddedActionsParser {
 
     optionEntry = this.RULE('optionEntry', () => {
         const name = this.CONSUME(optionNameToken);
-        let end = name.endOffset;
+        let end = name.endOffset!;
         const values: OptionEntryValue[] = [];
         this.MANY(() => {
             let escaped: 0 | 1 | 2 = 0;
@@ -221,7 +221,7 @@ class OptionsParser extends EmbeddedActionsParser {
                 {
                     ALT: () => {
                         const stringText = this.CONSUME(stringToken);
-                        end = stringText.endOffset;
+                        end = stringText.endOffset!;
                         if (stringText.image) {
                             escaped = stringText.image.startsWith('"') ? 2 : 1;
                             return stringText.image.substring(1, stringText.image.length - 1);
@@ -229,11 +229,11 @@ class OptionsParser extends EmbeddedActionsParser {
                             return '';
                         }
                     }
-                }, 
+                },
                 {
                     ALT: () => {
                         const id = this.CONSUME(idToken);
-                        end = id.endOffset;
+                        end = id.endOffset!;
                         return id.image;
                     }
                 }

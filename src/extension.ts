@@ -10,6 +10,7 @@ import { ModulesViewProvider } from './providers/modules';
 import { Container } from 'inversify';
 import containerModule from './container-module';
 import { ExtensionContext } from './constants';
+import { SolverTabViewProvider } from './providers/solver-tab';
 import { OptionsFileHandler } from './system/options';
 
 // This method is called when your extension is activated
@@ -28,13 +29,15 @@ export function activate(context: vscode.ExtensionContext): void {
     const modulesViewProvider = container.get(ModulesViewProvider);
     const outputsViewProvider = container.get(OutputsViewProvider);
     const solverViewProvider = container.get(SolverViewProvider);
+    const solverTabViewProvider = container.get(SolverTabViewProvider);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ScenarioViewProvider.viewType, scenarioViewProvider),
         vscode.window.registerWebviewViewProvider(InputsViewProvider.viewType, inputsViewProvider),
         vscode.window.registerWebviewViewProvider(ModulesViewProvider.viewType, modulesViewProvider),
         vscode.window.registerWebviewViewProvider(OutputsViewProvider.viewType, outputsViewProvider),
-        vscode.window.registerWebviewViewProvider(SolverViewProvider.viewType, solverViewProvider)
+        vscode.window.registerWebviewViewProvider(SolverViewProvider.viewType, solverViewProvider),
+        vscode.window.registerWebviewViewProvider(SolverTabViewProvider.viewType, solverTabViewProvider),
     );
 
     const optionsFileHandler = container.get(OptionsFileHandler);

@@ -15,7 +15,7 @@ messenger.start();
 
 function OutputView(): React.JSX.Element {
     const [filePath, setFilePath] = React.useState('');
-    
+
     useDelayedEffect(() => {
         messenger.sendNotification(SetMixedOptions, { type: 'extension' }, {
             name: 'outputsDir',
@@ -24,7 +24,7 @@ function OutputView(): React.JSX.Element {
     }, [filePath]);
 
     optionsEffect(messenger, options => {
-        setFilePath(options.outputsDir ?? '');
+        setFilePath(options?.outputsDir ?? '');
     });
 
     return <Layout direction='vertical'>
@@ -37,19 +37,19 @@ function OutputView(): React.JSX.Element {
                 onChange={(e: any) => setFilePath(e.target.value)}
             >
                 <div slot="end" className='flex align-items-center'>
-                    <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => { 
-                            const selection = await messenger.sendRequest(SelectFile, {
-                                type: 'extension'
-                            }, {
-                                canSelectFiles: false,
-                                canSelectFolders: true,
-                                canSelectMany: false
-                            });
-                            const value = selection[0];
-                            if (value) {
-                                setFilePath(value);
-                            }
-                        }}>
+                    <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
+                        const selection = await messenger.sendRequest(SelectFile, {
+                            type: 'extension'
+                        }, {
+                            canSelectFiles: false,
+                            canSelectFolders: true,
+                            canSelectMany: false
+                        });
+                        const value = selection[0];
+                        if (value) {
+                            setFilePath(value);
+                        }
+                    }}>
                         <span className="codicon codicon-folder-opened"></span>
                     </VSCodeButton>
                     <VSCodeButton appearance="icon" title="Clear Selection" onClick={() => setFilePath('')}>

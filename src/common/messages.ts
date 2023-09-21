@@ -3,6 +3,7 @@ import { RequestType, NotificationType } from "vscode-messenger-common";
 import { Options } from './options';
 import { Module } from './modules';
 import { Scenario } from './scenarios';
+import { KillSolverMessage, SolverOutputUpdateData, SolverProcess, SolverUpdateData } from './solver';
 
 export const SelectFile: RequestType<vscode.OpenDialogOptions, string[]> = {
     method: 'SelectFile'
@@ -66,10 +67,41 @@ export const SetScenarioOptions: NotificationType<OptionsSetter> = {
     method: 'SetScenarioOptions'
 };
 
-export const GetScenarios: RequestType<string, Scenario[]> = {
+export const GetScenarios: RequestType<string, Scenario[] | undefined> = {
     method: 'GetScenarios'
 };
 
 export const SelectScenario: NotificationType<string> = {
     method: 'SelectScenario'
+};
+
+// Solver messages
+export const Solve: NotificationType<void> = {
+    method: 'Solve'
+};
+
+export const SolveAll: NotificationType<void> = {
+    method: 'SolveAll'
+};
+
+export const GetSolvers: RequestType<void, SolverProcess[]> = {
+    method: 'GetSolvers'
+};
+
+export const KillSolver: NotificationType<KillSolverMessage> = {
+    method: 'KillSolver'
+};
+
+// Solver-Tab Messages
+export const SolverUpdate: NotificationType<SolverUpdateData> = {
+    method: 'SolverUpdate'
+};
+
+// solver id -> solver output
+export const GetSolverOutput: RequestType<string, string> = {
+    method: 'GetSolverOutput'
+};
+
+export const SolverOutputUpdate: NotificationType<SolverOutputUpdateData> = {
+    method: 'SolverOutputUpdate'
 };

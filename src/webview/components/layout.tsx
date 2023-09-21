@@ -6,5 +6,5 @@ export interface LayoutProps extends React.PropsWithChildren {
 }
 
 export function Layout(props: LayoutProps): React.JSX.Element {
-    return <div className={`${props.direction === 'vertical' ? 'flex flex-col' : 'flex flex-row grow'} ${props.className ?? ''}` }>{props.children}</div>;
+    return <div className={`${props.direction === 'vertical' ? 'flex flex-col' : 'flex flex-row grow'} ${props.className ?? ''}`}>{props.children}</div>;
 }

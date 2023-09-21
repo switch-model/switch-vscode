@@ -26,7 +26,7 @@ function InputView(): React.JSX.Element {
     }, [filePath]);
 
     optionsEffect(messenger, options => {
-        setFilePath(options.inputsDir ?? '');
+        setFilePath(options?.inputsDir ?? '');
     });
 
     return <Layout direction='vertical'>
@@ -41,19 +41,19 @@ function InputView(): React.JSX.Element {
                 }}
             >
                 <div slot="end" className='flex align-items-center'>
-                    <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => { 
-                            const selection = await messenger.sendRequest(SelectFile, {
-                                type: 'extension'
-                            }, {
-                                canSelectFiles: false,
-                                canSelectFolders: true,
-                                canSelectMany: false
-                            });
-                            const value = selection[0];
-                            if (value) {
-                                setFilePath(value);
-                            }
-                        }}>
+                    <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
+                        const selection = await messenger.sendRequest(SelectFile, {
+                            type: 'extension'
+                        }, {
+                            canSelectFiles: false,
+                            canSelectFolders: true,
+                            canSelectMany: false
+                        });
+                        const value = selection[0];
+                        if (value) {
+                            setFilePath(value);
+                        }
+                    }}>
                         <span className="codicon codicon-folder-opened"></span>
                     </VSCodeButton>
                     <VSCodeButton appearance="icon" title="Clear Selection" onClick={() => setFilePath('')}>
@@ -62,7 +62,7 @@ function InputView(): React.JSX.Element {
                 </div>
             </VSCodeTextField>
         </Layout>
-        <Button onClick={() => setCreate(!create)}>{ create ? 'Close' : 'Create' }</Button>
+        <Button onClick={() => setCreate(!create)}>{create ? 'Close' : 'Create'}</Button>
         {create && <Layout direction='vertical'>
             <hr className='opacity-25 my-2'></hr>
             <Label>Create Using</Label>

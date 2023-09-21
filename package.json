@@ -14,6 +14,9 @@
     "workspaceContains:options.txt"
   ],
   "main": "./out/extension.js",
+  "extensionDependencies": [
+    "ms-python.python"
+  ],
   "contributes": {
     "views": {
       "switchView": [
@@ -42,6 +45,13 @@
           "id": "switch.solver",
           "name": "Solver"
         }
+      ],
+      "switchRunningSolvers": [
+        {
+          "type": "webview",
+          "id": "switch.solver-tab",
+          "name": "Running Solvers"
+        }
       ]
     },
     "viewsContainers": {
@@ -50,6 +60,13 @@
           "icon": "resources/switch.svg",
           "id": "switchView",
           "title": "Switch Model"
+        }
+      ],
+      "panel": [
+        {
+          "icon": "resources/switch.svg",
+          "id": "switchRunningSolvers",
+          "title": "Running Solvers"
         }
       ]
     }
@@ -74,6 +91,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "reflect-metadata": "^0.1.13",
+    "terminate": "^2.6.1",
     "vscode-messenger": "^0.4.5",
     "vscode-messenger-common": "^0.4.5",
     "vscode-messenger-webview": "^0.4.5"
