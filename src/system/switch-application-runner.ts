@@ -6,7 +6,7 @@ import { error } from "node:console";
 const terminate = require('terminate');
 
 
-type switchCommand = 'solve' | 'solve-scenarios' | 'test' | 'upgrade' | '--version';
+type switchCommand = 'solve' | 'solve-scenarios' | 'test' | 'upgrade' | 'info' | '--version' ;
 
 /**
  * this class is responsible for executing the switch application
@@ -14,21 +14,48 @@ type switchCommand = 'solve' | 'solve-scenarios' | 'test' | 'upgrade' | '--versi
 @injectable()
 export class SwitchApplicationRunner {
 
-    async execute(command: switchCommand, params: string[]): Promise<SwitchApplicationProcess> {
+
+
+    /**
+     * Launches the command and returns a running process which can be monitored
+     * @returns the running Process
+     */
+    async launch(command: switchCommand, params: string[]): Promise<SwitchApplicationProcess> {
         const pythonExtension = await vscode.extensions.getExtension('ms-python.python')?.exports;
-        const pythonEnvironment = await pythonExtension.environments.resolveEnvironment(pythonExtension.environments.getActiveEnvironmentPath());
-        if (!pythonEnvironment?.environment) {
-            throw new Error('No python environment found. Please select a python environment before executing switch.');
+        const pythonEnvironment = await pythonExtension?.environments.resolveEnvironment(pythonExtension.environments.getActiveEnvironmentPath());
+        let activateCommands: string[] = [];
+        if (pythonEnvironment?.environment?.type === 'Conda') {
+            activateCommands = [
+                `${pythonEnvironment.environment.folderUri.fsPath}/../../Scripts/activate`, // TODO no idea if this is the standard for conda or if we need some other way to find the activate script
+                `conda activate ${pythonEnvironment.environment.name}`,    
+            ];
+            // throw new Error('No python environment found. Please select a python environment before executing switch.');
         }
 
         const commands = [
-            `${pythonEnvironment.environment.folderUri.fsPath}/../../Scripts/activate`, // TODO no idea if this is the standard for conda or if we need some other way to find the activate script
-            `conda activate ${pythonEnvironment.environment.name}`,
+            ...activateCommands,
             `switch ${command} ${params.join(' ')}`
         ];
 
-        return new SwitchApplicationProcess(spawn(commands.join('&'), { shell: true, cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath }));
+        return new SwitchApplicationProcess(spawn(commands.join(' & '), { shell: true, cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath }));
 
+    }
+
+    /**
+     * Executes the Process and waits for it to finish
+     * @returns the output of the process
+     */
+    async execute(command: switchCommand, params: string[]): Promise<string[]> {
+        const process = await this.launch(command, params);
+        return new Promise<string[]>((resolve, reject) => {
+            process.onStateChange(state => {
+                if (state === SwitchApplcationState.Finished) {
+                    resolve(process.output);
+                } else if (state === SwitchApplcationState.Error) {
+                    reject(process.errors);
+                }
+            });
+        });
     }
 
 

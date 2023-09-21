@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 
 import { inject, injectable } from "inversify";
-import { Module } from "../common/modules";
+import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
+import { SwitchApplicationRunner } from './switch-application-runner';
 
 
 @injectable()
@@ -10,6 +11,9 @@ export class ModulesHandler {
 
     @inject(OptionsFileHandler)
     private optionsHandler: OptionsFileHandler;
+
+    @inject(SwitchApplicationRunner)
+    private switchApplicationRunner: SwitchApplicationRunner;
 
 
     // TODO replace with getting the actual options
@@ -21,17 +25,28 @@ export class ModulesHandler {
 
     async loadModules(): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
+        let activatedModules: string[] = [];
         if (uri) {
             const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
-            return content
+            activatedModules = content
                 .split(new RegExp('\n'))
                 .map(line => line.trim())
-                .filter(line => !line.startsWith('#') && line !== '')
-                // TODO get the actual description and options
-                .map(line => (<Module>{ active: true, name: line, description: 'test Description', options: this.testOptions }));
+                .filter(line => !line.startsWith('#') && line !== '');
         }
 
-        return [];
+        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
+        // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
+        const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
+        if(!moduleListJson) {
+            throw new Error('Error: Could not load module list');
+        }
+        const moduleList: string[] = JSON.parse(moduleListJson);
+        return await Promise.all(moduleList.map(async module => (<Module>{ 
+            active: activatedModules.includes(module),
+            name: module,
+            options:  await this.getModuleOptions(module),
+            description: ''
+        })));
     }
 
     async updateModule(module: Module) {
@@ -40,13 +55,24 @@ export class ModulesHandler {
         const uri = await this.getModuleFilePath();
         if (uri) {
             const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
-            const newContent = content
-                .split(new RegExp('\n'))
-                .map(line => line.replace('#', '').trim() === module.name ? `${module.active ? '' : '# '}${module.name}` : line)
-                .join('\n');
+            const newContent = content.split(new RegExp('\n'))
 
-            await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent));
+            const lineIndex = newContent.findIndex(line => line.replace('#', '').trim() === module.name); 
+            if(lineIndex >= 0) {
+                newContent[lineIndex] = `${module.active ? '' : '# '}${module.name}`;
+            } else {
+                newContent.push(`${module.active ? '' : '# '}${module.name}`);
+            }
+            
+            await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.join('\n')));
         }
+    }
+
+    private async getModuleOptions(module: string): Promise<ModuleOption[]> {
+        const outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
+        return outputs
+            .map(output => JSON.parse(output))
+            .flatMap(output => Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => (<ModuleOption>{ name: key, ...value})));
     }
 
     // TODO this can probably be extended with an install function so each type can have its own installation method

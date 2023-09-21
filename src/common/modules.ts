@@ -1,7 +1,11 @@
 export interface ModuleOption {
-    name: string;
+    name: string
+    action: string;
+    choices?: string[];
+    default?: boolean | string | string[];
     value: boolean | string | string[];
-    description: string;
+    help: string;
+    nargs?: number | '+';
 } 
 
 export interface Module {

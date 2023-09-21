@@ -27,7 +27,7 @@ export class Solvers {
     async launchSolve() {
         const scenario = this.optionsFileHandler.selectedScenario;
         try {
-            const solver = await this.switchApplication.execute(scenario ? 'solve-scenarios' : 'solve', scenario ? ['--scenario', scenario] : []);
+            const solver = await this.switchApplication.launch(scenario ? 'solve-scenarios' : 'solve', scenario ? ['--scenario', scenario] : []);
             const solverId = `${scenario ?? 'default scenario'} (${this.solverIdCounter++})`;
             this.currentSolvers.set(solverId, solver);
             this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Started, id: solverId });
