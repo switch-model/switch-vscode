@@ -77,6 +77,10 @@ export class OptionsFileHandler {
         return this.mutex.runExclusive(() => this.doGetScenarios(filePath));
     }
 
+    getScenarioOptions(scenario?: string): Scenario | undefined {
+        return scenario ? this.lastScenarios?.find(e => e.scenarioName === scenario): undefined;
+    }
+
     private async doGetScenarios(filePath: string): Promise<Scenario[] | undefined> {
         try {
             const uri = await this.getUri(this.getScenariosPath(filePath));
@@ -233,4 +237,5 @@ export class OptionsFileHandler {
     private getScenariosPath(filePath?: string): string {
         return filePath || 'scenarios.txt';
     }
+
 }

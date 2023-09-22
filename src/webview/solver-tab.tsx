@@ -2,7 +2,7 @@ import { VSCodeButton, VSCodePanelTab, VSCodePanelView, VSCodePanels, VSCodeProg
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetSolverOutput, GetSolvers, KillSolver, SolverOutputUpdate, SolverUpdate } from '../common/messages';
+import { GetSolverOutput, GetSolvers, KillSolver, RevealOutputs, SolverOutputUpdate, SolverUpdate } from '../common/messages';
 import { SolverUpdateData, SolverUpdateType, SwitchApplcationState, SolverProcess, SolverOutputUpdateData } from '../common/solver';
 import { Layout } from './components/layout';
 
@@ -148,7 +148,10 @@ function ErrorContent({ solver }: ContentParams) {
 }
 
 function SuccessContent({ solver }: ContentParams) {
-    return <span>Solver finished successfully. See outputs folder for results</span>;
+    return <Layout direction='vertical'>
+        <span>Solver finished successfully</span>
+        <VSCodeButton appearance='primary' onClick={() => messenger.sendNotification(RevealOutputs, { type: 'extension' }, solver.id)}>Show Results</VSCodeButton>
+    </Layout>;
 }
 
 function StatusIcon({ solver }: { solver: SolverProcess }) {
