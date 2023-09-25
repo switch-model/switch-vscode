@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetModules, GetOptions, InstallModule, SelectFile, SetOptions, UpdateModule } from '../common/messages';
+import { GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from '../common/messages';
 import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
-import { VSCodeButton, VSCodeCheckbox, VSCodeProgressRing, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
+import { VSCodeButton, VSCodeCheckbox, VSCodeDropdown, VSCodeOption, VSCodeProgressRing, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 
 const vscode = acquireVsCodeApi();
 
@@ -18,6 +18,7 @@ function ModulesView() {
     React.useEffect(() => {
         messenger.sendRequest(GetModules, { type: 'extension' }).then(setModules);
         messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
+        messenger.onNotification(OptionsUpdated, () => { /* TODO reload module options */ });
     }, []);
 
     return <Layout direction='vertical'>
@@ -40,15 +41,17 @@ function ModulesView() {
 
         <Label className='mt-[20px] font-bold'>Options</Label>
         <table>
+            <tbody>
             {modules ? modules
                 .filter(module => module.active && module.options)
                 .flatMap(module => module.options)
                 .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
                 .map((option, i) => <tr className='my-1' key={i}>
-                    <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''}><Label className='grow'>{option.name.replace(/^-+/, '')}</Label></td>
+                    <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''} title={option.help}><Label className='grow'>{option.name}</Label></td>
                     <td><Option option={option} key={i} /></td>
                 </tr>
                 ) : <VSCodeProgressRing />}
+            </tbody>
         </table>
 
 
@@ -161,12 +164,12 @@ type OptionProps = {
 };
 
 function Option({ option }: OptionProps) {
-    if(!option.nargs || option.nargs === 0) {
+    if(option.action === 'StoreTrue' || option.action === 'StoreFalse' || option.action === 'StoreConst') {
         return <BooleanOption option={option} />;
-    } else if(option.nargs === 1) {
-        return <StringOption option={option} />;
+    } else if(option.nargs && (typeof option.nargs === 'string' || option.nargs > 0)) {
+        return <ListOption option={option} />;
     } else {
-        return <ComplexOption option={option} />;
+        return <StringOption option={option} />;
     }
 }
 
@@ -175,27 +178,34 @@ function BooleanOption({ option }: OptionProps) {
 }
 
 function StringOption({ option }: OptionProps) {
-    return <VSCodeTextField className='w-full' value={(option.value ?? option.default ?? '') as string} onChange={e => onOptionChange(option, e.target.value)}>
-        <div slot="end" className='flex align-items-center'>
-            <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
-                option.value = await messenger.sendRequest(SelectFile, {
-                    type: 'extension'
-                }, {
-                    canSelectFiles: false,
-                    canSelectFolders: true,
-                    canSelectMany: false
-                })[0] ?? option.value;
-            }}>
-                <span className="codicon codicon-folder-opened"></span>
-            </VSCodeButton>
-        </div>
-    </VSCodeTextField>;
-}
+    return option.choices ?
+        <VSCodeDropdown className='w-full'value={(option.value ?? option.default ?? '') as string} onChange={e => onOptionChange(option, e.target.value)} >
+            {option.choices.map((choice, i) => <VSCodeOption key={i}>{choice}</VSCodeOption>)}
+        </VSCodeDropdown> :
+        <VSCodeTextField className='w-full' value={(option.value ?? option.default ?? '') as string} onChange={e => onOptionChange(option, e.target.value)}>
+            { typeof option.default !== 'number' && <div slot="end" className='flex align-items-center'>
+                <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
+                    const newValue = await messenger.sendRequest(SelectFile, {
+                        type: 'extension'
+                    }, {
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false
+                    })[0] ?? option.value;
+                    if(newValue !== option.value) {
+                        onOptionChange(option, newValue);
+                    }
+                }}>
+                    <span className="codicon codicon-folder-opened"></span>
+                </VSCodeButton>
+            </div>}
+        </VSCodeTextField>;
+} 
 
-function ComplexOption({ option }: OptionProps) {
+function ListOption({ option }: OptionProps) {
     const [entries, setEntries] = React.useState((option.value ?? option.default ?? []) as string[]);
     return <>
-        {entries.map((entry, i) => <Layout direction='horizontal'>
+        {entries.map((entry, i) => <Layout direction='horizontal' key={i}>
             <VSCodeTextField className='grow' key={i} value={entry} onChange={e => {
                 entries[i] = e.target.value;
                 setEntries([...entries]);
@@ -221,8 +231,20 @@ function ComplexOption({ option }: OptionProps) {
 }
 
 function onOptionChange(option: ModuleOption, newValue: any) {
+    console.log('onOptionChange default name %s default %s new %s', option.name, option.default, newValue);
     option.value = newValue;
-    messenger.sendNotification(SetOptions, { type: 'extension' }, { name: option.name, params: Array.isArray(newValue) ? newValue : [newValue.toString()] });
+    let params;
+    if(typeof newValue === 'boolean') {
+        const defaultValue = ( option.action === 'StoreConst' || !option.default ? false : option.default) as boolean;
+        params = defaultValue === newValue ? undefined : [];
+    } else if (typeof newValue === 'string') {
+        const defaultValue = (option.default?.toString() ?? '');
+        params = defaultValue === newValue ? undefined : [newValue.toString()];
+    } else {
+        const defaultValue = (option.default ?? []) as string[];
+        params = newValue.filter(v => !!v).every((v: string, i: number) => v === defaultValue[i]) ? undefined : newValue.filter((v: string) => v.length > 0);
+    }
+    messenger.sendNotification(SetOptions, { type: 'extension' }, { name: option.name, params});
 }
 
 const main = document.getElementById('main')!;
