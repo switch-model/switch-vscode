@@ -85,7 +85,7 @@ const dragDropType = 'switch/searchpathindex';
 function SearchPath({ path, index, onDelete, onChange, onMove }: SearchPathProps) {
     const [dragOver, setDragOver] = React.useState<DragOverState>(DragOverState.NONE);
     return <>
-        {dragOver === DragOverState.TOP && <div className='h-[2px] bg-blue-500 w-full'></div>}
+        {dragOver === DragOverState.TOP && <div className='h-[2px] bg-[var(--focus-border)] w-full'></div>}
         <div className='flex flex-row grow items-center'
             onDragOver={e => {
                 if (e.dataTransfer.types.includes(dragDropType)) {
@@ -112,7 +112,7 @@ function SearchPath({ path, index, onDelete, onChange, onMove }: SearchPathProps
                 }}
             ></span>
             <VSCodeTextField
-                className='grow py-1 mt-1'
+                className='grow py-1'
                 placeholder='Path'
                 value={path}
                 onChange={(e: any) => ''}
