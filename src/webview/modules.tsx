@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from '../common/messages';
+import { GetModuleOptions, GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from '../common/messages';
 import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -15,10 +15,15 @@ messenger.start();
 function ModulesView() {
     const [searchPaths, setSearchPaths] = React.useState<string[] | undefined>(undefined);
     const [modules, setModules] = React.useState<Module[] | undefined>(undefined);
+    const [moduleOptions, setModuleOptions] = React.useState<ModuleOption[] | undefined>(undefined);
     React.useEffect(() => {
-        messenger.sendRequest(GetModules, { type: 'extension' }).then(setModules);
-        messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
         messenger.onNotification(OptionsUpdated, () => { /* TODO reload module options */ });
+        messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
+        (async () => {
+            const modules = await messenger.sendRequest(GetModules, { type: 'extension' });
+            setModules(modules);
+            setModuleOptions(await messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)));
+        })();
     }, []);
 
     return <Layout direction='vertical'>
@@ -42,9 +47,7 @@ function ModulesView() {
         <Label className='mt-[20px] font-bold'>Options</Label>
         <table>
             <tbody>
-            {modules ? modules
-                .filter(module => module.active && module.options)
-                .flatMap(module => module.options)
+            {moduleOptions ? moduleOptions
                 .filter((option, i, options) => options.findIndex(o => o.name === option.name) === i)
                 .map((option, i) => <tr className='my-1' key={i}>
                     <td className={typeof option.value === 'object' ? 'align-top pt-[6px]' : ''} title={option.help}><Label className='grow'>{option.name}</Label></td>
@@ -56,7 +59,17 @@ function ModulesView() {
 
 
         <Label className='mt-[20px] font-bold'>Found Modules</Label>
-        {modules ? modules.map((module, i) => <FoundModule module={module} key={i} />) : <VSCodeProgressRing />}
+        {modules ? modules.map((module, i) => <FoundModule module={module} key={i} onDidChangeActivation={async (module, active) => {
+            module.active = active;
+            messenger.sendNotification(UpdateModule, { type: 'extension' }, { ...module, active });
+            if(active) {
+                const newOptions = await messenger.sendRequest(GetModuleOptions, { type: 'extension' }, [module.name]);
+                setModuleOptions([...(moduleOptions || []), ...newOptions]);
+            } else {
+                // when deactivating we have to reload all options because of double options which belong to different modules
+                setModuleOptions(await messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules.filter(module => module.active).map(module => module.name)));
+            }
+        }}/>) : <VSCodeProgressRing />}
 
         <hr className='opacity-25 my-2'></hr>
         <VSCodeButton onClick={async () => {
@@ -143,17 +156,18 @@ function SearchPath({ path, index, onDelete, onChange, onMove }: SearchPathProps
 
 type FoundModuleProps = {
     module: Module;
+    onDidChangeActivation: (module: Module, active: boolean) => void;
 };
 
-function FoundModule({ module }: FoundModuleProps) {
+function FoundModule({ module, onDidChangeActivation }: FoundModuleProps) {
     const [expanded, setExpanded] = React.useState(false);
     return <Layout direction='vertical'>
         <Layout direction='horizontal'>
             <VSCodeButton appearance="icon" title="Expand" onClick={() => setExpanded(!expanded)}>
                 <span className={`codicon codicon-${expanded ? 'chevron-down' : 'chevron-right'}`}></span>
             </VSCodeButton>
-            <Label className=' grow'>{module.name}</Label>
-            <VSCodeCheckbox checked={module.active} onChange={e => messenger.sendNotification(UpdateModule, { type: 'extension' }, { ...module, active: e.target.checked })}></VSCodeCheckbox>
+            <Label className=' grow break-words overflow-hidden pr-2'>{module.name}</Label>
+            <VSCodeCheckbox checked={module.active} onChange={e => onDidChangeActivation(module,  e.target.checked)}></VSCodeCheckbox>
         </Layout>
         {expanded && <Label>{module.description}</Label>}
     </Layout>;

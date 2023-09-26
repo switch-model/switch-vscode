@@ -3,7 +3,7 @@ import { Messenger, ViewOptions } from "vscode-messenger";
 import { CreateFile, CreateFolder, GetFullOptions, GetModules, GetOptions, 
     GetScenarios, InstallModule, OptionsUpdated, SelectFile, SelectScenario, 
     SetMixedOptions, SetOptions, SetScenarioOptions, SetScenariosPath, 
-    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers,SolverUpdate, SolverOutputUpdate } from "../common/messages";
+    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers,SolverUpdate, SolverOutputUpdate, GetModuleOptions } from "../common/messages";
 import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -77,6 +77,9 @@ export class SwitchMessenger {
         });
         this.messenger.onRequest(GetModules, async () => {
             return await this.modulesHandler.loadModules();
+        });
+        this.messenger.onRequest(GetModuleOptions, async (modules: string[]) => {
+            return (await Promise.all(modules.map(async module =>  this.modulesHandler.getModuleOptions(module)))).flatMap(options => options);
         });
         this.messenger.onNotification(UpdateModule, async (module: Module) => {
             this.modulesHandler.updateModule(module);

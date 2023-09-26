@@ -1,7 +1,7 @@
 import type * as vscode from 'vscode';
 import { RequestType, NotificationType } from "vscode-messenger-common";
 import { Options } from './options';
-import { Module } from './modules';
+import { Module, ModuleOption } from './modules';
 import { Scenario } from './scenarios';
 import { KillSolverMessage, SolverOutputUpdateData, SolverProcess, SolverUpdateData } from './solver';
 
@@ -47,6 +47,10 @@ export const OptionsUpdated: NotificationType<void> = {
 // modules webview
 export const GetModules: RequestType<void, Module[]> = {
     method: 'GetModules'
+};
+
+export const GetModuleOptions: RequestType</* modules */ string[], ModuleOption[]> = {
+    method: 'GetModuleOptions'
 };
 
 export const UpdateModule: NotificationType<Module> = {

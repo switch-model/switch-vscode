@@ -12,5 +12,4 @@ export interface Module {
     name: string;
     active: boolean;
     description: string;
-    options: ModuleOption[];
 }
