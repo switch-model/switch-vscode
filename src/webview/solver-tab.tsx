@@ -3,13 +3,14 @@ import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
 import { GetSolverOutput, GetSolvers, KillSolver, RevealOutputs, SolverOutputUpdate, SolverUpdate } from '../common/messages';
-import { SolverUpdateData, SolverUpdateType, SwitchApplcationState, SolverProcess, SolverOutputUpdateData } from '../common/solver';
+import { SolverUpdateData, SolverUpdateType, SwitchApplcationState, SolverProcess, SolverOutputUpdateData, ScenarioState, ScenarioStatus } from '../common/solver';
 import { Layout } from './components/layout';
 
 const vscode = acquireVsCodeApi();
 
 const messenger = new Messenger(vscode, { debugLog: true });
 messenger.start();
+
 
 class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], activeSolverId?: string }> {
 
@@ -35,7 +36,11 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
             switch (data.type) {
                 case SolverUpdateType.Started:
                     activeSolverId = data.id;
-                    solvers.push({ id: data.id, state: SwitchApplcationState.Running });
+                    solvers.push({ 
+                        id: data.id, 
+                        state: SwitchApplcationState.Running, 
+                        scenarioStatus: data.scenarios?.map((scenario) => ({scenario, state: ScenarioState.Scheduled}))
+                    });
                     break;
                 case SolverUpdateType.Progress:
                     solvers[solverIndex].progress = data.progress;
@@ -46,6 +51,10 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
                 case SolverUpdateType.Error:
                     solvers[solverIndex].error = data.error;
                     solvers[solverIndex].state = SwitchApplcationState.Error;
+                    break;
+                case SolverUpdateType.Scenario:
+                    const scenario = solvers[solverIndex].scenarioStatus?.find((scenario) => data.status.scenario === scenario.scenario);
+                    scenario!.state = data.status.state;
                     break;
             }
             this.setState({ activeSolverId, solvers });
@@ -66,7 +75,7 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
                 {solvers.map((solver: SolverProcess, i) =>
                     <VSCodePanelTab id={'tab-' + solver.id} key={'tab-' + i} className={`border-b-2 ${activeSolverId === solver.id ? 'border-[var(--panel-tab-active-foreground)]' : 'border-[transparent]'}`}
                         onClick={() => this.setState({ ...this.state, activeSolverId: solver.id })}>
-                        {solver.id}
+                        {solver.id.substring(0, solver.id.lastIndexOf('-'))}
                         <StatusIcon solver={solver} />
                         <VSCodeButton appearance='icon' title={solver.state === SwitchApplcationState.Running ? 'Kill' : 'Close'} onClick={() => {
                             // if its already killed this will only delete the solver
@@ -105,6 +114,7 @@ function Content(params: ContentParams) {
 
 function RunningContent({ solver }: ContentParams) {
     return <Layout direction='vertical' className='w-full items-start'>
+        {solver.scenarioStatus && solver.scenarioStatus.map((scenario, i) => <ScenarioStatus key={i} {...scenario} />)}
         <Layout direction='horizontal' className='gap-2 items-center grow-0'>
             <div className='w-[200px] h-[30px] border-2 border-[var(--vscode-input-border)]'>
                 <div className='bg-[var(--button-primary-background)] h-full' style={{ width: `${(solver.progress ? solver.progress.progress : 0) * 2}px` }}></div>
@@ -118,6 +128,19 @@ function RunningContent({ solver }: ContentParams) {
         <hr className='opacity-25 my-2 w-full'></hr>
         <SolverOutput solver={solver} />
     </Layout>;
+}
+
+function ScenarioStatus({ scenario, state }: ScenarioStatus) {
+    switch (state) {
+        case ScenarioState.Scheduled: 
+            return <span>{scenario} scheduled</span>;
+        case ScenarioState.Running:
+            return <span>{scenario} running</span>;
+        case ScenarioState.Finished:
+            return <span>{scenario} finished</span>;
+        case ScenarioState.Skipped:
+            return <span>{scenario} skipped</span>;
+    }
 }
 
 function SolverOutput({ solver }: ContentParams) {
@@ -152,16 +175,20 @@ function SolverOutput({ solver }: ContentParams) {
 }
 
 function ErrorContent({ solver }: ContentParams) {
-    return <div>
+    return <div className='whitespace-pre-wrap'>
         <p className='text-error'>{solver.error}</p>
     </div>;
 }
 
 function SuccessContent({ solver }: ContentParams) {
-    return <Layout direction='vertical'>
-        <span>Solver finished successfully</span>
-        <VSCodeButton appearance='primary' onClick={() => messenger.sendNotification(RevealOutputs, { type: 'extension' }, solver.id)}>Show Results</VSCodeButton>
-    </Layout>;
+    return solver.scenarioStatus ? 
+        <Layout direction='vertical' className='w-full items-start'>
+            {solver.scenarioStatus.map((scenario, i) => <ScenarioStatus key={i} {...scenario} />)}
+        </Layout> :
+        <Layout direction='vertical'>
+	        <span>Solver finished successfully</span>
+	        <VSCodeButton appearance='primary' onClick={() => messenger.sendNotification(RevealOutputs, { type: 'extension' }, solver.id)}>Show Results</VSCodeButton>
+    	</Layout>;
 }
 
 function StatusIcon({ solver }: { solver: SolverProcess }) {

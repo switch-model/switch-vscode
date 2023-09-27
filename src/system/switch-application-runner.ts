@@ -93,9 +93,12 @@ export class SwitchApplicationProcess implements vscode.Disposable {
         });
 
         process.on('exit', function (code) {
-            that.state = code === 0 ? SwitchApplcationState.Finished : SwitchApplcationState.Error;
-            that.onStateChangeEmitter.fire(that.state);
-            console.log('exit: ' + code);
+            // we Wait a little bit, so that the last stdio events can come in before setting the process state to finished
+            setTimeout(() => {
+                that.state = code === 0 ? SwitchApplcationState.Finished : SwitchApplcationState.Error;
+                that.onStateChangeEmitter.fire(that.state);
+                console.log('exit: ' + code);    
+            }, 100);
         });
     }
 

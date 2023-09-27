@@ -88,6 +88,11 @@ export const SolveAll: NotificationType<void> = {
     method: 'SolveAll'
 };
 
+export const CleanScenarioQueue: NotificationType<void> = {
+    method: 'CleanScenarioQueue'
+};
+
+// Solver-Tab Messages
 export const GetSolvers: RequestType<void, SolverProcess[]> = {
     method: 'GetSolvers'
 };
@@ -96,7 +101,6 @@ export const KillSolver: NotificationType<KillSolverMessage> = {
     method: 'KillSolver'
 };
 
-// Solver-Tab Messages
 export const SolverUpdate: NotificationType<SolverUpdateData> = {
     method: 'SolverUpdate'
 };

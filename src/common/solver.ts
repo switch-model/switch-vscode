@@ -1,14 +1,17 @@
+import exp from "constants";
 
 export enum SolverUpdateType {
     Started,
     Finished,
     Error,
-    Progress
+    Progress,
+    Scenario // for 'solve all' when scenario changes 
 }
 
 export interface SolverStarted {
     type: SolverUpdateType.Started;
     id: string;
+    scenarios?: string[];
 }
 
 export interface SolverProgress {
@@ -17,10 +20,27 @@ export interface SolverProgress {
     progress: ProgressState;
 }
 
+export enum ScenarioState {
+    Scheduled,
+    Running,
+    Finished,
+    Skipped,
+}
+
+export interface ScenarioStatus {
+    scenario: string;
+    state: ScenarioState;
+}
+
+export interface ScenarioUpdate {
+    type: SolverUpdateType.Scenario;
+    id: string;
+    status: ScenarioStatus
+}
+
 export interface SolverFinished {
     type: SolverUpdateType.Finished;
     id: string;
-    results: any;
 }
 
 export interface SolverError {
@@ -29,13 +49,14 @@ export interface SolverError {
     error: string;
 }
 
-export type SolverUpdateData = SolverStarted | SolverFinished | SolverError | SolverProgress;
+export type SolverUpdateData = SolverStarted | SolverFinished | SolverError | SolverProgress | ScenarioUpdate;
 
 export interface SolverProcess {
     id: string;
     state: SwitchApplcationState;
     error?: string;
     progress?: ProgressState;
+    scenarioStatus?: ScenarioStatus[];
 }
 
 export interface ProgressState {
