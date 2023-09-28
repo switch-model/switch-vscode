@@ -4,6 +4,12 @@ import { ProgressState, SolverOutputUpdateData, SolverUpdateData, SolverUpdateTy
 import { SwitchApplicationProcess, SwitchApplicationRunner } from './switch-application-runner';
 import { OptionsFileHandler } from './options';
 
+export interface Solver {
+    id: string;
+    scenario?: string;
+    process: SwitchApplicationProcess;
+}
+
 @injectable()
 export class Solvers {
 
@@ -22,17 +28,17 @@ export class Solvers {
 
     private solverIdCounter = 0;
 
-    private currentSolvers: Map<string, SwitchApplicationProcess> = new Map();
+    currentSolvers: Map<string, Solver> = new Map();
 
     async launchSolve() {
         const scenario = this.optionsFileHandler.selectedScenario;
         try {
-            const solver = await this.switchApplication.launch(scenario ? 'solve-scenarios' : 'solve', scenario ? ['--scenario', scenario] : []);
+            const solverProcess = await this.switchApplication.launch(scenario ? 'solve-scenarios' : 'solve', scenario ? ['--scenario', scenario] : []);
             const solverId = `${scenario ?? 'default scenario'} (${this.solverIdCounter++})`;
-            this.currentSolvers.set(solverId, solver);
+            this.currentSolvers.set(solverId, { id: solverId, scenario: scenario, process: solverProcess });
             this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Started, id: solverId });
             let progressState: ProgressState = { progress: 0, step: 'Starting' };
-            solver.onData(data => {
+            solverProcess.onData(data => {
                 const newState = this.updateProgress(data, progressState);
                 if (progressState !== newState) {
                     progressState = newState;
@@ -40,11 +46,11 @@ export class Solvers {
                 }
                 this.onSolveOutputUpdateEmitter.fire({ id: solverId, data });
             });
-            solver.onStateChange(state => {
+            solverProcess.onStateChange(state => {
                 if (state === SwitchApplcationState.Finished) {
                     this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Finished, id: solverId, results: {} }); // TODO results
                 } else if (state === SwitchApplcationState.Error) {
-                    this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Error, id: solverId, error: solver.errors.join('\n') });
+                    this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Error, id: solverId, error: solverProcess.errors.join('\n') });
                 }
             });
         } catch (e) {
@@ -73,13 +79,13 @@ export class Solvers {
 
     getSolvers() {
         return Array.from(this.currentSolvers.entries())
-            .map(([id, solver]) => ({ id, state: solver.state, error: solver.errors.join('\n') }));
+            .map(([id, solver]) => ({ id, state: solver.process.state, error: solver.process.errors.join('\n') }));
     }
 
     killSolver(id: string, dispose: boolean) {
-        this.currentSolvers.get(id)?.kill();
+        this.currentSolvers.get(id)?.process.kill();
         if (dispose) {
-            this.currentSolvers.get(id)?.dispose();
+            this.currentSolvers.get(id)?.process.dispose();
             this.currentSolvers.delete(id);
         }
     }
@@ -88,6 +94,8 @@ export class Solvers {
     }
 
     getSolverOuptut(id: string): string {
-        return this.currentSolvers.get(id)?.output.join('\n') || '';
+        return this.currentSolvers.get(id)?.process.output.join('\n') || '';
     }
+
+
 }

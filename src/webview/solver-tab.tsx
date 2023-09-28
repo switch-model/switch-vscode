@@ -2,7 +2,7 @@ import { VSCodeButton, VSCodePanelTab, VSCodePanelView, VSCodePanels, VSCodeProg
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetSolverOutput, GetSolvers, KillSolver, SolverOutputUpdate, SolverUpdate } from '../common/messages';
+import { GetSolverOutput, GetSolvers, KillSolver, RevealOutputs, SolverOutputUpdate, SolverUpdate } from '../common/messages';
 import { SolverUpdateData, SolverUpdateType, SwitchApplcationState, SolverProcess, SolverOutputUpdateData } from '../common/solver';
 import { Layout } from './components/layout';
 
@@ -13,9 +13,13 @@ messenger.start();
 
 class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], activeSolverId?: string }> {
 
+    private activeIndicatorStyle = new CSSStyleSheet();
+
     constructor(props: {}) {
         super(props);
         this.state = { solvers: [], activeSolverId: undefined };
+        this.activeIndicatorStyle.replaceSync( `.activeIndicator { display: none }`);
+
     };
 
     async componentDidMount(): Promise<void> {
@@ -46,7 +50,12 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
             }
             this.setState({ activeSolverId, solvers });
         });
+    }
 
+    componentDidUpdate(): void {
+        // There is a bug in vscodePanels when dynamicly adding tabs that the active indicator is shown on the wrong tab
+        // so we have to implement it our selfs
+        (ReactDOM.findDOMNode(this) as HTMLElement).shadowRoot?.adoptedStyleSheets.push(this.activeIndicatorStyle);
     }
 
     render(): React.ReactNode {
@@ -55,7 +64,8 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
             <div>No Current Solvers</div> :
             <VSCodePanels className='h-full' activeid={`tab-${activeSolverId ?? solvers[0].id}`}>
                 {solvers.map((solver: SolverProcess, i) =>
-                    <VSCodePanelTab id={'tab-' + solver.id} key={'tab-' + i} onClick={() => this.setState({ ...this.state, activeSolverId: solver.id })}>
+                    <VSCodePanelTab id={'tab-' + solver.id} key={'tab-' + i} className={`border-b-2 ${activeSolverId === solver.id ? 'border-[var(--panel-tab-active-foreground)]' : 'border-[transparent]'}`}
+                        onClick={() => this.setState({ ...this.state, activeSolverId: solver.id })}>
                         {solver.id}
                         <StatusIcon solver={solver} />
                         <VSCodeButton appearance='icon' title={solver.state === SwitchApplcationState.Running ? 'Kill' : 'Close'} onClick={() => {
@@ -148,7 +158,10 @@ function ErrorContent({ solver }: ContentParams) {
 }
 
 function SuccessContent({ solver }: ContentParams) {
-    return <span>Solver finished successfully. See outputs folder for results</span>;
+    return <Layout direction='vertical'>
+        <span>Solver finished successfully</span>
+        <VSCodeButton appearance='primary' onClick={() => messenger.sendNotification(RevealOutputs, { type: 'extension' }, solver.id)}>Show Results</VSCodeButton>
+    </Layout>;
 }
 
 function StatusIcon({ solver }: { solver: SolverProcess }) {

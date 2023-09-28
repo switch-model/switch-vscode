@@ -101,6 +101,10 @@ export const SolverUpdate: NotificationType<SolverUpdateData> = {
     method: 'SolverUpdate'
 };
 
+export const RevealOutputs: NotificationType<string> = {
+    method: 'RevealOutputs'
+}
+
 // solver id -> solver output
 export const GetSolverOutput: RequestType<string, string> = {
     method: 'GetSolverOutput'

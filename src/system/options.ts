@@ -5,6 +5,7 @@ import { injectable } from 'inversify';
 import { getOptions, getScenarios, setOption, setScenarioOption } from './options-parser';
 import { Mutex } from 'async-mutex';
 import { Scenario } from '../common/scenarios';
+import { WorkspaceUtils } from './workspace-utils';
 
 @injectable()
 export class OptionsFileHandler {
@@ -51,7 +52,7 @@ export class OptionsFileHandler {
             return this.lastOptions;
         }
         try {
-            const uri = await this.getUri('options.txt');
+            const uri = await WorkspaceUtils.getUri('options.txt');
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
                 const content = byteContent.toString();
@@ -77,9 +78,13 @@ export class OptionsFileHandler {
         return this.mutex.runExclusive(() => this.doGetScenarios(filePath));
     }
 
+    getScenarioOptions(scenario?: string): Scenario | undefined {
+        return scenario ? this.lastScenarios?.find(e => e.scenarioName === scenario): undefined;
+    }
+
     private async doGetScenarios(filePath: string): Promise<Scenario[] | undefined> {
         try {
-            const uri = await this.getUri(this.getScenariosPath(filePath));
+            const uri = await WorkspaceUtils.getUri(this.getScenariosPath(filePath));
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
                 const content = byteContent.toString();
@@ -115,7 +120,7 @@ export class OptionsFileHandler {
 
     private async doSetOption(name: string, params?: string[]): Promise<void> {
         try {
-            let uri = await this.getUri('options.txt');
+            let uri = await WorkspaceUtils.getUri('options.txt');
             let content = '';
             if (uri) {
                 const byteContent = await vscode.workspace.fs.readFile(uri);
@@ -145,7 +150,7 @@ export class OptionsFileHandler {
             }
             const options = await this.doGetOptions();
             const scenarioPath = this.getScenariosPath(options?.scenarioList);
-            const uri = await this.getUri(scenarioPath);
+            const uri = await WorkspaceUtils.getUri(scenarioPath);
             if (uri) {
                 this.lastScenarios = undefined;
                 const byteContent = await vscode.workspace.fs.readFile(uri);
@@ -214,23 +219,10 @@ export class OptionsFileHandler {
         this.scenarioWatcher.onDidDelete(e => this.emitUpdate(e));
     }
 
-    private async getUri(path: string, stat = true): Promise<vscode.Uri | undefined> {
-        const workspaces = vscode.workspace.workspaceFolders || [];
-        for (const workspace of workspaces) {
-            const uri = vscode.Uri.joinPath(workspace.uri, path);
-            try {
-                if (stat) {
-                    await vscode.workspace.fs.stat(uri);
-                }
-                return uri;
-            } catch {
-                // This is fine
-            }
-        }
-        return undefined;
-    }
+
 
     private getScenariosPath(filePath?: string): string {
         return filePath || 'scenarios.txt';
     }
+
 }
