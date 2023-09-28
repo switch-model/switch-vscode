@@ -88,7 +88,8 @@ export class ModulesHandler {
         if(!moduleListJson) {
             throw new Error('Error: Could not load module list');
         }
-        return JSON.parse(moduleListJson);
+        this.moduleListCache = JSON.parse(moduleListJson);
+        return this.moduleListCache!;
     }
 
 
