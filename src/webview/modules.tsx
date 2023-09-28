@@ -185,7 +185,7 @@ type OptionProps = {
 function Option({ option }: OptionProps) {
     if(option.action === 'StoreTrue' || option.action === 'StoreFalse' || option.action === 'StoreConst') {
         return <BooleanOption option={option} />;
-    } else if(option.nargs && (typeof option.nargs === 'string' || option.nargs > 0)) {
+    } else if(option.nargs && (typeof option.nargs === 'string' || option.nargs > 1)) {
         return <ListOption option={option} />;
     } else {
         return <StringOption option={option} />;
@@ -223,6 +223,7 @@ function StringOption({ option }: OptionProps) {
 
 function ListOption({ option }: OptionProps) {
     const [entries, setEntries] = React.useState((option.value ?? option.default ?? []) as string[]);
+    console.log(`${option.name}: value ${option.value}  default ${option.default}`);
     return <>
         {entries.map((entry, i) => <Layout direction='horizontal' key={i}>
             <VSCodeTextField className='grow' key={i} value={entry} onChange={e => {

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import _ from 'lodash';
 
 import { inject, injectable } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
@@ -66,10 +67,15 @@ export class ModulesHandler {
         if(this.moduleOptionsCache.has(module)) {
             return this.moduleOptionsCache.get(module)!;
         }
+        const options = await this.optionsHandler.getOptions();
         const outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
         const moduleOptions = outputs
             .map(output => JSON.parse(output))
-            .flatMap(output => Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => (<ModuleOption>{ name: key.replace(/^-+/, ''), ...value})));
+            .flatMap(output => 
+                Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => {
+                    const name = key.replace(/^-+/, '');
+                    return (<ModuleOption>{ name: name, value: options?.[_.camelCase(name)], ...value})
+                }));
 
         this.moduleOptionsCache.set(module, moduleOptions);
         return moduleOptions;

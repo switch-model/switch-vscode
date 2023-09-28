@@ -8,7 +8,7 @@ export type Options = {
     solverOptionsString?: SolverOptionsString,
     inputsDir?: string,
     outputsDir?: string,
-    forceLngTier?: false,
+    forceLngTier?: string[],
     rpsAllocation?: string,
     demandResponseShare?: number,
     contingencyReserveType?: ReserveTypes[],

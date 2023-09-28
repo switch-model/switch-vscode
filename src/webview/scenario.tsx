@@ -143,8 +143,9 @@ function OptionsPanel({ scenario, options }: { scenario?: Scenario, options?: Op
         <VSCodeCheckbox checked={actualOptions?.verbose ?? false} onChange={e => setValue('verbose', e.target.checked ? [] : undefined)}>Verbose</VSCodeCheckbox>
         <VSCodeCheckbox checked={actualOptions?.streamSolver ?? false} onChange={e => setValue('streamSolver', e.target.checked ? [] : undefined)}>Stream Solver</VSCodeCheckbox>
         <VSCodeCheckbox checked={actualOptions?.sortedOutput ?? false} onChange={e => setValue('sortedOutput', e.target.checked ? [] : undefined)}>Sorted Output</VSCodeCheckbox>
-        <VSCodeCheckbox checked={actualOptions?.forceLngTier ?? true} onChange={e => setValue('forceLngTier', e.target.checked ? undefined : ['none'])}>Force LNG Tier</VSCodeCheckbox>
         <VSCodeCheckbox checked={actualOptions?.unitContingency ?? false} onChange={e => setValue('unitContingency', e.target.checked ? [] : undefined)}>Unit Contigency</VSCodeCheckbox>
+        <Label>Force LNG Tier</Label>
+        <VSCodeTextField value={actualOptions?.forceLngTier?.join(' ') ?? 'none'} onChange={e => setValue('solver', e.target.value.split(' '))}></VSCodeTextField>
         <Label>Solver</Label>
         <VSCodeTextField value={actualOptions?.solver ?? ''} onChange={e => setValue('solver', [e.target.value])}></VSCodeTextField>
         <Label>RPS Allocation</Label>
