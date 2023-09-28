@@ -42,7 +42,9 @@ export class ModulesHandler {
             throw new Error('Error: Could not load module list');
         }
         const moduleList: string[] = JSON.parse(moduleListJson);
-        return await Promise.all(moduleList.map(async module => (<Module>{ 
+        return await Promise.all(activatedModules
+            .concat(moduleList.filter(module => !activatedModules.includes(module)))
+            .map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
             // options: await this.getModuleOptions(module),

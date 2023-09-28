@@ -6,6 +6,7 @@ export interface ModuleOption {
     value: boolean | string | string[];
     help: string;
     nargs?: number | '+' | '*';
+    dest: string;
 } 
 
 export interface Module {
