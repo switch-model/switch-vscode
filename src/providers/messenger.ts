@@ -11,6 +11,7 @@ import { ModulesHandler } from '../system/modules';
 import { Solvers } from '../system/solvers';
 import { NotificationType, WebviewIdMessageParticipant } from 'vscode-messenger-common';
 import path from 'node:path';
+import { WorkspaceUtils } from '../system/workspace-utils';
 
 @injectable()
 export class SwitchMessenger {
@@ -110,8 +111,9 @@ export class SwitchMessenger {
                 (await this.optionsFileHandler.getOptions())?.outputsDir ??
                 './outputs';
             // hacky workaround because there currently is a bug in vscode which does not reveal the correct resource when the explorer is not open see https://github.com/microsoft/vscode/issues/160504
-            await vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(vscode.workspace.workspaceFolders?.[0].uri!, outputFolder));
-            vscode.commands.executeCommand('revealInExplorer', vscode.Uri.joinPath(vscode.workspace.workspaceFolders?.[0].uri!, outputFolder));
+            const uri = await WorkspaceUtils.getUri(outputFolder);
+            await vscode.commands.executeCommand('revealInExplorer', uri);
+            vscode.commands.executeCommand('revealInExplorer', uri);
         });
     }
 
