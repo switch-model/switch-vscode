@@ -15,6 +15,7 @@ export class ModulesHandler {
     @inject(SwitchApplicationRunner)
     private switchApplicationRunner: SwitchApplicationRunner;
 
+    private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
 
     // TODO replace with getting the actual options
     private readonly testOptions = [
@@ -44,7 +45,7 @@ export class ModulesHandler {
         return await Promise.all(moduleList.map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
-            options:  await this.getModuleOptions(module),
+            // options: await this.getModuleOptions(module),
             description: ''
         })));
     }
@@ -55,7 +56,7 @@ export class ModulesHandler {
         const uri = await this.getModuleFilePath();
         if (uri) {
             const content = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
-            const newContent = content.split(new RegExp('\n'))
+            const newContent = content.split(new RegExp('\n'));
 
             const lineIndex = newContent.findIndex(line => line.replace('#', '').trim() === module.name); 
             if(lineIndex >= 0) {
@@ -68,11 +69,17 @@ export class ModulesHandler {
         }
     }
 
-    private async getModuleOptions(module: string): Promise<ModuleOption[]> {
+    async getModuleOptions(module: string): Promise<ModuleOption[]> {
+        if(this.moduleOptionsCache.has(module)) {
+            return this.moduleOptionsCache.get(module)!;
+        }
         const outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
-        return outputs
+        const moduleOptions = outputs
             .map(output => JSON.parse(output))
-            .flatMap(output => Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => (<ModuleOption>{ name: key, ...value})));
+            .flatMap(output => Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => (<ModuleOption>{ name: key.replace(/^-+/, ''), ...value})));
+
+        this.moduleOptionsCache.set(module, moduleOptions);
+        return moduleOptions;
     }
 
     // TODO this can probably be extended with an install function so each type can have its own installation method
