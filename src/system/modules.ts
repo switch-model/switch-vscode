@@ -4,6 +4,7 @@ import { inject, injectable } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
+import { WorkspaceUtils } from './workspace-utils';
 
 
 @injectable()
@@ -115,11 +116,26 @@ export class ModulesHandler {
     }
 
     private async getModuleFilePath(): Promise<vscode.Uri | undefined> {
-        const workspace = vscode.workspace.workspaceFolders?.[0];
-        if (workspace) {
-            const options = await this.optionsHandler.getOptions();
-            // TODO probably use inputsDir of the currently selected Scenario and only options.inputsDir if no Scenario is selected 
-            return vscode.Uri.joinPath(workspace.uri, options?.moduleList ?? options?.inputsDir ? `${options.inputsDir}/modules.txt` : 'modules.txt');
+        const scenarioOptions = await this.optionsHandler.getScenarioOptions(this.optionsHandler.selectedScenario);
+        const options = await this.optionsHandler.getOptions();
+
+        const moduleTxtLocations: (string | undefined)[] = [
+            scenarioOptions?.moduleList, // scenario module list
+            scenarioOptions?.inputsDir ? `${scenarioOptions!.inputsDir}/modules.txt` : undefined,  // scenario inputs dir
+            options?.moduleList ?? // global module list
+            options?.inputsDir ? `${options.inputsDir}/modules.txt` :  // global inputs dir
+            'modules.txt' // dafault modules.txt in root directory
+        ];
+
+        for(let location of moduleTxtLocations) {
+            if(location) {
+                const uri = WorkspaceUtils.getUri(location, true);
+                if(uri) {
+                    return uri;
+                }
+            }
         }
+
+        return undefined;
     }
 }
