@@ -13,9 +13,13 @@ messenger.start();
 
 class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], activeSolverId?: string }> {
 
+    private activeIndicatorStyle = new CSSStyleSheet();
+
     constructor(props: {}) {
         super(props);
         this.state = { solvers: [], activeSolverId: undefined };
+        this.activeIndicatorStyle.replaceSync( `.activeIndicator { display: none }`);
+
     };
 
     async componentDidMount(): Promise<void> {
@@ -46,16 +50,23 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
             }
             this.setState({ activeSolverId, solvers });
         });
+    }
 
+    componentDidUpdate(): void {
+        // There is a bug in vscodePanels when dynamicly adding tabs that the active indicator is shown on the wrong tab
+        // so we have to implement it our selfs
+        (ReactDOM.findDOMNode(this) as HTMLElement).shadowRoot?.adoptedStyleSheets.push(this.activeIndicatorStyle);
     }
 
     render(): React.ReactNode {
         const { solvers, activeSolverId } = this.state;
+        console.log('active Tab ' + activeSolverId ?? solvers[0].id);
         return solvers.length === 0 ?
             <div>No Current Solvers</div> :
             <VSCodePanels className='h-full' activeid={`tab-${activeSolverId ?? solvers[0].id}`}>
                 {solvers.map((solver: SolverProcess, i) =>
-                    <VSCodePanelTab id={'tab-' + solver.id} key={'tab-' + i} onClick={() => this.setState({ ...this.state, activeSolverId: solver.id })}>
+                    <VSCodePanelTab id={'tab-' + solver.id} key={'tab-' + i} className={`border-b-2 ${activeSolverId === solver.id ? 'border-[var(--panel-tab-active-foreground)]' : 'border-[transparent]'}`}
+                        onClick={() => this.setState({ ...this.state, activeSolverId: solver.id })}>
                         {solver.id}
                         <StatusIcon solver={solver} />
                         <VSCodeButton appearance='icon' title={solver.state === SwitchApplcationState.Running ? 'Kill' : 'Close'} onClick={() => {
