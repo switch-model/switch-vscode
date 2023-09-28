@@ -3,13 +3,15 @@ import { Messenger, ViewOptions } from "vscode-messenger";
 import { CreateFile, CreateFolder, GetFullOptions, GetModules, GetOptions, 
     GetScenarios, InstallModule, OptionsUpdated, SelectFile, SelectScenario, 
     SetMixedOptions, SetOptions, SetScenarioOptions, SetScenariosPath, 
-    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers,SolverUpdate, SolverOutputUpdate } from "../common/messages";
+    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers,SolverUpdate, SolverOutputUpdate, RevealOutputs } from "../common/messages";
 import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
 import { ModulesHandler } from '../system/modules';
 import { Solvers } from '../system/solvers';
 import { NotificationType, WebviewIdMessageParticipant } from 'vscode-messenger-common';
+import path from 'node:path';
+import { WorkspaceUtils } from '../system/workspace-utils';
 
 @injectable()
 export class SwitchMessenger {
@@ -101,7 +103,18 @@ export class SwitchMessenger {
         this.messenger.onNotification(SolveAll, async () => this.solver.solveAll());
         this.messenger.onNotification(KillSolver, async ({id, dispose}) => this.solver.killSolver(id, dispose));
         this.messenger.onRequest(GetSolvers, async () => this.solver.getSolvers());
-        this.messenger.onRequest(GetSolverOutput, async (id: string) => this.solver.getSolverOuptut(id));
+        this.messenger.onRequest(GetSolverOutput, async (solverId: string) => this.solver.getSolverOuptut(solverId));
+
+        this.messenger.onNotification(RevealOutputs, async (solverId: string) => {
+            const scenario = this.solver.currentSolvers.get(solverId)?.scenario;
+            const outputFolder = this.optionsFileHandler.getScenarioOptions(scenario)?.outputsDir ??
+                (await this.optionsFileHandler.getOptions())?.outputsDir ??
+                './outputs';
+            // hacky workaround because there currently is a bug in vscode which does not reveal the correct resource when the explorer is not open see https://github.com/microsoft/vscode/issues/160504
+            const uri = await WorkspaceUtils.getUri(outputFolder);
+            await vscode.commands.executeCommand('revealInExplorer', uri);
+            vscode.commands.executeCommand('revealInExplorer', uri);
+        });
     }
 
     private sendWebviewNotification(notificationType: NotificationType<any>, notification: any, viewType: string) {
