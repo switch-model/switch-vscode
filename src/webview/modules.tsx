@@ -17,7 +17,8 @@ function ModulesView() {
     const [modules, setModules] = React.useState<Module[] | undefined>(undefined);
     const [moduleOptions, setModuleOptions] = React.useState<ModuleOption[] | undefined>(undefined);
     React.useEffect(() => {
-        messenger.onNotification(OptionsUpdated, () => { /* TODO reload module options */ });
+        messenger.onNotification(OptionsUpdated, async () => 
+            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions));
         messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
         (async () => {
             const modules = await messenger.sendRequest(GetModules, { type: 'extension' });
