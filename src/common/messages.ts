@@ -45,7 +45,7 @@ export const OptionsUpdated: NotificationType<void> = {
 
 
 // modules webview
-export const GetModules: RequestType<void, Module[]> = {
+export const GetModules: RequestType<void | boolean, Module[]> = {
     method: 'GetModules'
 };
 

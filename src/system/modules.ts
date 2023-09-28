@@ -16,15 +16,9 @@ export class ModulesHandler {
     private switchApplicationRunner: SwitchApplicationRunner;
 
     private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
+    private moduleListCache: string[] | undefined = undefined;
 
-    // TODO replace with getting the actual options
-    private readonly testOptions = [
-        { name: 'testString', value: 'test', description: 'string test option' },
-        { name: 'testBool', value: false, description: 'boolean test option' },
-        { name: 'testList', value: ['testv1', 'testv2'], description: 'string list test option' }
-    ];
-
-    async loadModules(): Promise<Module[]> {
+    async loadModules(useCache = true): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
         let activatedModules: string[] = [];
         if (uri) {
@@ -35,19 +29,12 @@ export class ModulesHandler {
                 .filter(line => !line.startsWith('#') && line !== '');
         }
 
-        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
-        // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
-        const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
-        if(!moduleListJson) {
-            throw new Error('Error: Could not load module list');
-        }
-        const moduleList: string[] = JSON.parse(moduleListJson);
+        const moduleList: string[] = await this.getModuleList(useCache);
         return await Promise.all(activatedModules
             .concat(moduleList.filter(module => !activatedModules.includes(module)))
             .map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
-            // options: await this.getModuleOptions(module),
             description: ''
         })));
     }
@@ -64,7 +51,10 @@ export class ModulesHandler {
             if(lineIndex >= 0) {
                 newContent[lineIndex] = `${module.active ? '' : '# '}${module.name}`;
             } else {
-                newContent.push(`${module.active ? '' : '# '}${module.name}`);
+                const moduleList = await this.getModuleList();
+                const moduleIndex = moduleList.findIndex(name => name === module.name);
+                const insertIndex = newContent.findIndex(line => moduleList.findIndex(name => name === line.replace('#', '').trim()) > moduleIndex);
+                newContent.splice(insertIndex < 0 ? newContent.length : insertIndex, 0, `${module.active ? '' : '# '}${module.name}`);
             }
             
             await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.join('\n')));
@@ -84,6 +74,24 @@ export class ModulesHandler {
         return moduleOptions;
     }
 
+    invalidateModuleListCache() {
+        this.moduleListCache = undefined;
+    }
+
+    private async getModuleList(useCache = true): Promise<string[]> {
+        if(useCache && this.moduleListCache) {
+            return this.moduleListCache;
+        }
+        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
+        // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
+        const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
+        if(!moduleListJson) {
+            throw new Error('Error: Could not load module list');
+        }
+        return JSON.parse(moduleListJson);
+    }
+
+
     // TODO this can probably be extended with an install function so each type can have its own installation method
     private readonly boxConfigurationsByType: { [key: string]: vscode.InputBoxOptions } = {
         'URL': { title: 'URL', placeHolder: 'URL' },
@@ -102,7 +110,7 @@ export class ModulesHandler {
         if (!destination) { return; }
 
         // TODO do the actual installation
-
+        this.invalidateModuleListCache();
     }
 
     private async getModuleFilePath(): Promise<vscode.Uri | undefined> {

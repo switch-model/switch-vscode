@@ -57,8 +57,12 @@ function ModulesView() {
             </tbody>
         </table>
 
-
-        <Label className='mt-[20px] font-bold'>Found Modules</Label>
+        <Layout direction='horizontal' className='items-center mt-[20px] '>
+            <Label className='font-bold grow'>Found Modules</Label>
+            <VSCodeButton appearance='icon' onClick={() => messenger.sendRequest(GetModules, { type: 'extension' }, false).then(setModules)}>
+                <span className="codicon codicon-refresh"></span>
+            </VSCodeButton>
+        </Layout>
         {modules ? modules.map((module, i) => <FoundModule module={module} key={i} onDidChangeActivation={async (module, active) => {
             module.active = active;
             messenger.sendNotification(UpdateModule, { type: 'extension' }, { ...module, active });
