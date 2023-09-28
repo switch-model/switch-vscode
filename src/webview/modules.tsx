@@ -245,7 +245,6 @@ function ListOption({ option }: OptionProps) {
 }
 
 function onOptionChange(option: ModuleOption, newValue: any) {
-    console.log('onOptionChange default name %s default %s new %s', option.name, option.default, newValue);
     option.value = newValue;
     let params;
     if(typeof newValue === 'boolean') {
