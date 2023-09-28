@@ -3,8 +3,8 @@ import { Messenger, ViewOptions } from "vscode-messenger";
 import { CreateFile, CreateFolder, GetFullOptions, GetModules, GetOptions, 
     GetScenarios, InstallModule, OptionsUpdated, SelectFile, SelectScenario, 
     SetMixedOptions, SetOptions, SetScenarioOptions, SetScenariosPath, 
-    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers,SolverUpdate, 
-    SolverOutputUpdate, RevealOutputs, GetModuleOptions } from "../common/messages";
+    UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers, SolverUpdate,
+    SolverOutputUpdate, CleanScenarioQueue, RevealOutputs, GetModuleOptions } from "../common/messages";
 import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -105,6 +105,8 @@ export class SwitchMessenger {
         // Solver
         this.messenger.onNotification(Solve, async () => this.solver.launchSolve());
         this.messenger.onNotification(SolveAll, async () => this.solver.solveAll());
+        this.messenger.onNotification(CleanScenarioQueue, async () => this.solver.cleanScenarioQueue());
+
         this.messenger.onNotification(KillSolver, async ({id, dispose}) => this.solver.killSolver(id, dispose));
         this.messenger.onRequest(GetSolvers, async () => this.solver.getSolvers());
         this.messenger.onRequest(GetSolverOutput, async (solverId: string) => this.solver.getSolverOuptut(solverId));
