@@ -60,7 +60,6 @@ class RunningSolvers extends React.Component<{}, { solvers: SolverProcess[], act
 
     render(): React.ReactNode {
         const { solvers, activeSolverId } = this.state;
-        console.log('active Tab ' + activeSolverId ?? solvers[0].id);
         return solvers.length === 0 ?
             <div>No Current Solvers</div> :
             <VSCodePanels className='h-full' activeid={`tab-${activeSolverId ?? solvers[0].id}`}>
