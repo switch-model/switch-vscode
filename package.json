@@ -69,6 +69,16 @@
           "title": "Running Solvers"
         }
       ]
+    },
+    "configuration": {
+      "title": "Switch",
+      "properties": {
+        "switch.preferredExecutableLocation": {
+          "type": "string",
+          "description": "location of the switch application to use by the extension. Should end with a / or \\. Leave the field empty if usage from conda or PATH is desired.",
+          "format": "^.*(\\\\|/)$"
+        }
+      }
     }
   },
   "scripts": {
