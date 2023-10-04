@@ -10,12 +10,12 @@ type OptionParser = {
 
 const optionTypes: OptionParser[] = [
     { canHandle: ['verbose', 'streamSolver', 'sortedOutput', 'unitContingency'], parse: (options, name) => options[name] = true }, // true
-    { canHandle: ['forceLngTier'], parse: (options, name) => options[name] = false }, // false 
+    { canHandle: [], parse: (options, name) => options[name] = false }, // false 
     { canHandle: ['demandResponseShare'], parse: (options, name, params) => options[name] = +params[0] }, // number
     { canHandle: ['solverOptionsString'], parse: (options, name, params) => parseQuotedOptionsString(params, options) }, // solverOptionsString
     {
         canHandle: [
-            'moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath',
+            'moduleList', 'includeModules', 'excludeModules', 'moduleSearchPath', 'forceLngTier',
             'contingencyReserveType', 'demandResponseReserveTypes', 'evReserveTypes', 'regulatingReserveType'
         ],
         parse: (options, name, params) => options[name] = params

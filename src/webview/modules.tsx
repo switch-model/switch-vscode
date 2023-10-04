@@ -17,7 +17,8 @@ function ModulesView() {
     const [modules, setModules] = React.useState<Module[] | undefined>(undefined);
     const [moduleOptions, setModuleOptions] = React.useState<ModuleOption[] | undefined>(undefined);
     React.useEffect(() => {
-        messenger.onNotification(OptionsUpdated, () => { /* TODO reload module options */ });
+        messenger.onNotification(OptionsUpdated, async () => 
+            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions));
         messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
         (async () => {
             const modules = await messenger.sendRequest(GetModules, { type: 'extension' });
@@ -57,8 +58,12 @@ function ModulesView() {
             </tbody>
         </table>
 
-
-        <Label className='mt-[20px] font-bold'>Found Modules</Label>
+        <Layout direction='horizontal' className='items-center mt-[20px] '>
+            <Label className='font-bold grow'>Found Modules</Label>
+            <VSCodeButton appearance='icon' onClick={() => messenger.sendRequest(GetModules, { type: 'extension' }, false).then(setModules)}>
+                <span className="codicon codicon-refresh"></span>
+            </VSCodeButton>
+        </Layout>
         {modules ? modules.map((module, i) => <FoundModule module={module} key={i} onDidChangeActivation={async (module, active) => {
             module.active = active;
             messenger.sendNotification(UpdateModule, { type: 'extension' }, { ...module, active });
@@ -180,7 +185,7 @@ type OptionProps = {
 function Option({ option }: OptionProps) {
     if(option.action === 'StoreTrue' || option.action === 'StoreFalse' || option.action === 'StoreConst') {
         return <BooleanOption option={option} />;
-    } else if(option.nargs && (typeof option.nargs === 'string' || option.nargs > 0)) {
+    } else if(option.nargs && (typeof option.nargs === 'string' || option.nargs > 1)) {
         return <ListOption option={option} />;
     } else {
         return <StringOption option={option} />;
@@ -218,6 +223,7 @@ function StringOption({ option }: OptionProps) {
 
 function ListOption({ option }: OptionProps) {
     const [entries, setEntries] = React.useState((option.value ?? option.default ?? []) as string[]);
+    console.log(`${option.name}: value ${option.value}  default ${option.default}`);
     return <>
         {entries.map((entry, i) => <Layout direction='horizontal' key={i}>
             <VSCodeTextField className='grow' key={i} value={entry} onChange={e => {

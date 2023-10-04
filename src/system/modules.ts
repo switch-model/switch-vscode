@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import _ from 'lodash';
 
 import { inject, injectable } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
+import { WorkspaceUtils } from './workspace-utils';
 
 
 @injectable()
@@ -16,15 +18,9 @@ export class ModulesHandler {
     private switchApplicationRunner: SwitchApplicationRunner;
 
     private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
+    private moduleListCache: string[] | undefined = undefined;
 
-    // TODO replace with getting the actual options
-    private readonly testOptions = [
-        { name: 'testString', value: 'test', description: 'string test option' },
-        { name: 'testBool', value: false, description: 'boolean test option' },
-        { name: 'testList', value: ['testv1', 'testv2'], description: 'string list test option' }
-    ];
-
-    async loadModules(): Promise<Module[]> {
+    async loadModules(useCache = true): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
         let activatedModules: string[] = [];
         if (uri) {
@@ -35,17 +31,12 @@ export class ModulesHandler {
                 .filter(line => !line.startsWith('#') && line !== '');
         }
 
-        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
-        // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
-        const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
-        if(!moduleListJson) {
-            throw new Error('Error: Could not load module list');
-        }
-        const moduleList: string[] = JSON.parse(moduleListJson);
-        return await Promise.all(moduleList.map(async module => (<Module>{ 
+        const moduleList: string[] = await this.getModuleList(useCache);
+        return await Promise.all(activatedModules
+            .concat(moduleList.filter(module => !activatedModules.includes(module)))
+            .map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
-            // options: await this.getModuleOptions(module),
             description: ''
         })));
     }
@@ -62,7 +53,10 @@ export class ModulesHandler {
             if(lineIndex >= 0) {
                 newContent[lineIndex] = `${module.active ? '' : '# '}${module.name}`;
             } else {
-                newContent.push(`${module.active ? '' : '# '}${module.name}`);
+                const moduleList = await this.getModuleList();
+                const moduleIndex = moduleList.findIndex(name => name === module.name);
+                const insertIndex = newContent.findIndex(line => moduleList.findIndex(name => name === line.replace('#', '').trim()) > moduleIndex);
+                newContent.splice(insertIndex < 0 ? newContent.length : insertIndex, 0, `${module.active ? '' : '# '}${module.name}`);
             }
             
             await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.join('\n')));
@@ -73,14 +67,38 @@ export class ModulesHandler {
         if(this.moduleOptionsCache.has(module)) {
             return this.moduleOptionsCache.get(module)!;
         }
+        const options = await this.optionsHandler.getOptions();
         const outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
         const moduleOptions = outputs
             .map(output => JSON.parse(output))
-            .flatMap(output => Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => (<ModuleOption>{ name: key.replace(/^-+/, ''), ...value})));
+            .flatMap(output => 
+                Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => {
+                    const name = key.replace(/^-+/, '');
+                    return (<ModuleOption>{ name: name, value: options?.[_.camelCase(name)], ...value})
+                }));
 
         this.moduleOptionsCache.set(module, moduleOptions);
         return moduleOptions;
     }
+
+    invalidateModuleListCache() {
+        this.moduleListCache = undefined;
+    }
+
+    private async getModuleList(useCache = true): Promise<string[]> {
+        if(useCache && this.moduleListCache) {
+            return this.moduleListCache;
+        }
+        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
+        // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
+        const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
+        if(!moduleListJson) {
+            throw new Error('Error: Could not load module list');
+        }
+        this.moduleListCache = JSON.parse(moduleListJson);
+        return this.moduleListCache!;
+    }
+
 
     // TODO this can probably be extended with an install function so each type can have its own installation method
     private readonly boxConfigurationsByType: { [key: string]: vscode.InputBoxOptions } = {
@@ -100,15 +118,30 @@ export class ModulesHandler {
         if (!destination) { return; }
 
         // TODO do the actual installation
-
+        this.invalidateModuleListCache();
     }
 
     private async getModuleFilePath(): Promise<vscode.Uri | undefined> {
-        const workspace = vscode.workspace.workspaceFolders?.[0];
-        if (workspace) {
-            const options = await this.optionsHandler.getOptions();
-            // TODO probably use inputsDir of the currently selected Scenario and only options.inputsDir if no Scenario is selected 
-            return vscode.Uri.joinPath(workspace.uri, options?.moduleList ?? options?.inputsDir ? `${options.inputsDir}/modules.txt` : 'modules.txt');
+        const scenarioOptions = await this.optionsHandler.getScenarioOptions(this.optionsHandler.selectedScenario);
+        const options = await this.optionsHandler.getOptions();
+
+        const moduleTxtLocations: (string | undefined)[] = [
+            scenarioOptions?.moduleList, // scenario module list
+            scenarioOptions?.inputsDir ? `${scenarioOptions!.inputsDir}/modules.txt` : undefined,  // scenario inputs dir
+            options?.moduleList ?? // global module list
+            options?.inputsDir ? `${options.inputsDir}/modules.txt` :  // global inputs dir
+            'modules.txt' // dafault modules.txt in root directory
+        ];
+
+        for(let location of moduleTxtLocations) {
+            if(location) {
+                const uri = WorkspaceUtils.getUri(location, true);
+                if(uri) {
+                    return uri;
+                }
+            }
         }
+
+        return undefined;
     }
 }

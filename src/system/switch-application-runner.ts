@@ -2,7 +2,8 @@ import { injectable } from "inversify";
 import { ChildProcess, spawn } from 'node:child_process';
 import * as vscode from 'vscode';
 import { SwitchApplcationState } from "../common/solver";
-import { error } from "node:console";
+import os from 'os';
+import path from "node:path";
 const terminate = require('terminate');
 
 
@@ -14,8 +15,6 @@ type switchCommand = 'solve' | 'solve-scenarios' | 'test' | 'upgrade' | 'info' |
 @injectable()
 export class SwitchApplicationRunner {
 
-
-
     /**
      * Launches the command and returns a running process which can be monitored
      * @returns the running Process
@@ -26,15 +25,17 @@ export class SwitchApplicationRunner {
         let activateCommands: string[] = [];
         if (pythonEnvironment?.environment?.type === 'Conda') {
             activateCommands = [
-                `${pythonEnvironment.environment.folderUri.fsPath}/../../Scripts/activate`, // TODO no idea if this is the standard for conda or if we need some other way to find the activate script
+                `${pythonEnvironment.environment.folderUri.fsPath}/../../${os.platform() === 'win32' ? 'Scripts' : 'bin'}/activate`, // TODO no idea if this is the standard for conda or if we need some other way to find the activate script
                 `conda activate ${pythonEnvironment.environment.name}`,    
             ];
             // throw new Error('No python environment found. Please select a python environment before executing switch.');
         }
 
+        const switchLocation =  vscode.workspace.getConfiguration('switch').get<string>('preferredExecutableLocation');
+
         const commands = [
             ...activateCommands,
-            `switch ${command} ${params.join(' ')}`
+            `${switchLocation ? `"${switchLocation}switch"` : 'switch'} ${command} ${params.join(' ')}`
         ];
 
         return new SwitchApplicationProcess(spawn(commands.join(' & '), { shell: true, cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath }));

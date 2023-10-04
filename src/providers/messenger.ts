@@ -60,6 +60,9 @@ export class SwitchMessenger {
         });
         this.messenger.onNotification(SetOptions, async options => {
             await this.optionsFileHandler.setOption(options.name, options.params);
+            if(options.name === 'searchPaths') {
+                this.modulesHandler.invalidateModuleListCache();
+            }
             this.optionsUpdated();
         });
         this.messenger.onNotification(SetMixedOptions, async options => {
@@ -78,8 +81,8 @@ export class SwitchMessenger {
             const options = await this.optionsFileHandler.getFullOptions();
             return options;
         });
-        this.messenger.onRequest(GetModules, async () => {
-            return await this.modulesHandler.loadModules();
+        this.messenger.onRequest(GetModules, async (useCache) => {
+            return await this.modulesHandler.loadModules(useCache ?? true);
         });
         this.messenger.onRequest(GetModuleOptions, async (modules: string[]) => {
             return (await Promise.all(modules.map(async module =>  this.modulesHandler.getModuleOptions(module)))).flatMap(options => options);
