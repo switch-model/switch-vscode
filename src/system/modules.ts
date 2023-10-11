@@ -12,7 +12,7 @@ import { exec } from 'child_process';
 
 interface ModuleInstallOptions extends vscode.InputBoxOptions {
     install: (urlOrName: string, destination) => Promise<void>;
-    getFileName: (urlOrName: string) => string;
+    getFileName?: (urlOrName: string) => string;
 }
 
 @injectable()
@@ -135,10 +135,10 @@ export class ModulesHandler {
     // TODO this can probably be extended with an install function so each type can have its own installation method
     private readonly boxConfigurationsByType: { [key: string]: ModuleInstallOptions } = {
         'URL': { title: 'URL', placeHolder: 'URL', install: this.installFromUrl, getFileName: (url) => url.split('/').pop()! },
-        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name', install: this.installFromPip, getFileName: (packageName) => packageName },
-        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name', install: this.installFromConda, getFileName: (packageName) => packageName },
-        'Github': { title: 'Github Url', placeHolder: 'URL', install: this.installFromGithub, getFileName: (url) => `${url.split('/').pop()}.py` },
-        'Create New': { title: 'Module Name', placeHolder: 'Name', install: this.createNewModule, getFileName: (name) => name }
+        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name', install: this.installFromPip },
+        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name', install: this.installFromConda},
+        'Github': { title: 'Github Url', placeHolder: 'URL', install: this.installFromGithub, getFileName: (url) => url.split('/').pop()! },
+        'Create New': { title: 'Module Name', placeHolder: 'Name', install: this.createNewModule}
     };
 
     async installNewModule() {
@@ -147,7 +147,9 @@ export class ModulesHandler {
         const configuration = this.boxConfigurationsByType[type];
         const UrlOrName = await vscode.window.showInputBox(configuration);
         if (!UrlOrName) { return; }
-        const destination = (await vscode.window.showSaveDialog({ title: 'Destination', saveLabel: 'Install Here', defaultUri: vscode.Uri.file(`./${configuration.getFileName(UrlOrName)}` ) }))?.fsPath;
+        const destination = (await vscode.window.showSaveDialog({ title: 'Destination', 
+            saveLabel: 'Install Here', 
+            defaultUri: vscode.Uri.file(`./${configuration.getFileName ? configuration.getFileName(UrlOrName) : UrlOrName}` ) }))?.fsPath;
         if (!destination) { return; }
 
         vscode.window.withProgress({
