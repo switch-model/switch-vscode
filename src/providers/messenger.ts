@@ -60,7 +60,7 @@ export class SwitchMessenger {
         });
         this.messenger.onNotification(SetOptions, async options => {
             await this.optionsFileHandler.setOption(options.name, options.params);
-            if(options.name === 'searchPaths') {
+            if(options.name === 'moduleSearchPath') {
                 this.modulesHandler.invalidateModuleListCache();
             }
             this.optionsUpdated();
@@ -152,6 +152,10 @@ export class SwitchMessenger {
         });
         this.solver.onSolveOutputUpdate(update => {
             this.sendWebviewNotification(SolverOutputUpdate, update, 'switch.solver-tab');
+        });
+
+        this.modulesHandler.onDidChangeSearchPath(() => {
+            this.optionsUpdated();
         });
 
     }

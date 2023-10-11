@@ -18,6 +18,9 @@ interface ModuleInstallOptions extends vscode.InputBoxOptions {
 @injectable()
 export class ModulesHandler {
 
+    private onDidChangeSearchPathEmitter = new vscode.EventEmitter<void>();
+    readonly onDidChangeSearchPath = this.onDidChangeSearchPathEmitter.event;
+
     @inject(OptionsFileHandler)
     private optionsHandler: OptionsFileHandler;
 
@@ -162,6 +165,13 @@ export class ModulesHandler {
                     vscode.window.showErrorMessage(`Error installing module: ${error}`);
                 }        
         });
+
+        const searchPaths = (await this.optionsHandler.getOptions())?.moduleSearchPath ?? [];
+        if(!searchPaths.includes(destination)) {
+            searchPaths.push(destination);
+            this.optionsHandler.setOption('moduleSearchPath', searchPaths);
+            this.onDidChangeSearchPathEmitter.fire();
+        }
 
         this.invalidateModuleListCache();
     }
