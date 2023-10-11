@@ -34,18 +34,15 @@ function ModulesView() {
         {searchPaths ? searchPaths.map((path, i) => <SearchPath key={i} path={path} index={i}
             onChange={(path) => {
                 searchPaths[i] = path;
-                setSearchPaths([...searchPaths]);
-                messenger.sendNotification(SetOptions, { type: 'extension' }, { name: 'moduleSearchPath', params: searchPaths });
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
             onDelete={() => {
                 searchPaths.splice(i, 1);
-                setSearchPaths([...searchPaths]);
-                messenger.sendNotification(SetOptions, { type: 'extension' }, { name: 'moduleSearchPath', params: searchPaths });
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
             onMove={(from, to) => {
                 searchPaths.splice(from < to ? to - 1 : to, 0, searchPaths.splice(from, 1)[0]);
-                setSearchPaths([...searchPaths]);
-                messenger.sendNotification(SetOptions, { type: 'extension' }, { name: 'moduleSearchPath', params: searchPaths });
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
         />) : <VSCodeProgressRing />}
         <VSCodeButton className='w-fit self-end my-1' onClick={() => setSearchPaths([...searchPaths || [], ''])}>Add</VSCodeButton>
@@ -89,6 +86,11 @@ function ModulesView() {
 
     </Layout>;
 }
+
+function updateSearchPaths(searchPaths: string[], setSearchPaths: (searchPaths: string[]) => void, messenger: Messenger) {
+    setSearchPaths([...searchPaths]);
+    messenger.sendNotification(SetOptions, { type: 'extension' }, { name: 'moduleSearchPath', params: searchPaths.length > 0 ? searchPaths : undefined });
+};
 
 type SearchPathProps = {
     index: number;
