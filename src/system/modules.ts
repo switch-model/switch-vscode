@@ -1,12 +1,19 @@
 import * as vscode from 'vscode';
 import _ from 'lodash';
+import https from 'https';
+import fs from 'fs';
 
 import { inject, injectable } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
 import { WorkspaceUtils } from './workspace-utils';
+import { exec } from 'child_process';
 
+interface ModuleInstallOptions extends vscode.InputBoxOptions {
+    install: (urlOrName: string, destination) => Promise<void>;
+    getFileName: (urlOrName: string) => string;
+}
 
 @injectable()
 export class ModulesHandler {
@@ -99,28 +106,6 @@ export class ModulesHandler {
         return this.moduleListCache!;
     }
 
-
-    // TODO this can probably be extended with an install function so each type can have its own installation method
-    private readonly boxConfigurationsByType: { [key: string]: vscode.InputBoxOptions } = {
-        'URL': { title: 'URL', placeHolder: 'URL' },
-        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name' },
-        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name' },
-        'Github': { title: 'Github Url', placeHolder: 'URL' },
-        'create New': { title: 'Module Name', placeHolder: 'Name' }
-    };
-
-    async installNewModule() {
-        const type = await vscode.window.showQuickPick(['URL', 'PyPI', 'Conda', 'Github', 'create New'], { title: 'Select Source', placeHolder: 'Source' });
-        if (!type) { return; }
-        const UrlOrName = await vscode.window.showInputBox(this.boxConfigurationsByType[type]);
-        if (!UrlOrName) { return; }
-        const destination = (await vscode.window.showOpenDialog({ title: 'Destination', canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Install Here' }))?.[0].fsPath;
-        if (!destination) { return; }
-
-        // TODO do the actual installation
-        this.invalidateModuleListCache();
-    }
-
     private async getModuleFilePath(): Promise<vscode.Uri | undefined> {
         const scenarioOptions = await this.optionsHandler.getScenarioOptions(this.optionsHandler.selectedScenario);
         const options = await this.optionsHandler.getOptions();
@@ -144,4 +129,110 @@ export class ModulesHandler {
 
         return undefined;
     }
+
+
+
+    // TODO this can probably be extended with an install function so each type can have its own installation method
+    private readonly boxConfigurationsByType: { [key: string]: ModuleInstallOptions } = {
+        'URL': { title: 'URL', placeHolder: 'URL', install: this.installFromUrl, getFileName: (url) => url.split('/').pop()! },
+        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name', install: this.installFromPip, getFileName: (packageName) => packageName },
+        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name', install: this.installFromConda, getFileName: (packageName) => packageName },
+        'Github': { title: 'Github Url', placeHolder: 'URL', install: this.installFromGithub, getFileName: (url) => `${url.split('/').pop()}.py` },
+        'Create New': { title: 'Module Name', placeHolder: 'Name', install: this.createNewModule, getFileName: (name) => name }
+    };
+
+    async installNewModule() {
+        const type = await vscode.window.showQuickPick(Object.keys(this.boxConfigurationsByType), { title: 'Select Source', placeHolder: 'Source' });
+        if (!type) { return; }
+        const configuration = this.boxConfigurationsByType[type];
+        const UrlOrName = await vscode.window.showInputBox(configuration);
+        if (!UrlOrName) { return; }
+        const destination = (await vscode.window.showSaveDialog({ title: 'Destination', saveLabel: 'Install Here', defaultUri: vscode.Uri.file(`./${configuration.getFileName(UrlOrName)}` ) }))?.fsPath;
+        if (!destination) { return; }
+
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification, 
+            title: 'Installing Module', cancellable: false}, 
+            async (progress) => {
+                try {
+                    await configuration.install(UrlOrName, destination);
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Error installing module: ${error}`);
+                }        
+        });
+
+        this.invalidateModuleListCache();
+    }
+
+    private installFromUrl(url: string, destination: string): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            https.get(url, (response) => {
+                response.pipe(fs.createWriteStream(destination))
+                    .on('finish', res).on('error', rej);
+            });
+        });
+    }
+
+    private installFromPip(packageName: string, destination: string): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            exec(`pip install ${packageName} -t ${destination} --no-deps`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(stderr);
+                    rej(error);
+                } else {
+                    console.log(stdout);
+                    res();
+                }
+            });
+        });
+    }
+
+    private installFromConda(packageName: string, destination: string): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            exec(`conda install ${packageName} -p ${destination} --no-deps`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(stderr);
+                    rej(error);
+                } else {
+                    console.log(stdout);
+                    res();
+                }
+            });
+        });
+    }
+
+    private installFromGithub(repositoryUrl: string, destination: string): Promise<void> {
+        return new Promise<void>((res, rej) => {
+            exec(`git clone ${repositoryUrl} ${destination}`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(stderr);
+                    rej(error);
+                } else {
+                    console.log(stdout);
+                    res();
+                }
+            });
+        });
+    }
+
+    private async createNewModule(_, destination: string): Promise<void> {
+        await vscode.workspace.fs.writeFile(vscode.Uri.file(destination), new TextEncoder().encode(NEW_MODULE_TEMPLATE));
+    }
+
 }
+
+const NEW_MODULE_TEMPLATE = `
+def define_components(m):
+    # Replace with your own code here
+    m.BuildCogen = Var(
+        m.FUEL_BASED_GENS, m.PERIODS,
+        within=NonNegativeReals
+        )
+
+def load_inputs(m, switch_data, inputs_dir):
+    # Replace with your own code here
+    switch_data.load_aug(
+        filename=os.path.join(inputs_dir, 'cogen.csv'),
+        autoselect=True,
+        param=(m.cogen_heat_rate, m.cogen_fixed_cost))
+`;

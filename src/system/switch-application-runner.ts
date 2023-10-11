@@ -3,7 +3,6 @@ import { ChildProcess, spawn } from 'node:child_process';
 import * as vscode from 'vscode';
 import { SwitchApplcationState } from "../common/solver";
 import os from 'os';
-import path from "node:path";
 const terminate = require('terminate');
 
 
