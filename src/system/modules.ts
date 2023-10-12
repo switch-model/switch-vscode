@@ -20,6 +20,11 @@ export class ModulesHandler {
     private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
     private moduleListCache: string[] | undefined = undefined;
 
+    private lastModulesWrite = 0;
+
+    private onDidUpdateModuleListEmitter = new vscode.EventEmitter<void>();
+    onDidUpdateModuleList = this.onDidUpdateModuleListEmitter.event;
+
     async loadModules(useCache = true): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
         let activatedModules: string[] = [];
@@ -60,6 +65,7 @@ export class ModulesHandler {
             }
             
             await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.join('\n')));
+            this.lastModulesWrite = Date.now();
         }
     }
 
@@ -83,6 +89,18 @@ export class ModulesHandler {
 
     invalidateModuleListCache() {
         this.moduleListCache = undefined;
+    }
+
+    watch(): vscode.Disposable {
+        const watcher = vscode.workspace.createFileSystemWatcher('**/modules.txt');
+        watcher.onDidChange(async uri => {
+            const stat = await vscode.workspace.fs.stat(uri);
+            if (stat.mtime > this.lastModulesWrite) {
+                this.onDidUpdateModuleListEmitter.fire();
+            }
+
+        });
+        return watcher;
     }
 
     private async getModuleList(useCache = true): Promise<string[]> {

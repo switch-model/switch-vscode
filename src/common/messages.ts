@@ -62,6 +62,11 @@ export const InstallModule: RequestType<string, void> = {
 };
 
 
+export const ModuleListUpdated: NotificationType<void> = {
+    method: 'ModuleListUpdated'
+};
+
+
 // scenario webview
 export const SetScenariosPath: RequestType<string, Scenario[]> = {
     method: 'SetScenariosPath'

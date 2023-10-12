@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { GetModuleOptions, GetModules, GetOptions, InstallModule, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from '../common/messages';
+import { GetModuleOptions, GetModules, GetOptions, InstallModule, ModuleListUpdated, OptionsUpdated, SelectFile, SetOptions, UpdateModule } from '../common/messages';
 import { Module, ModuleOption } from '../common/modules';
 import { Layout } from './components/layout';
 import { Label } from './components/label';
@@ -17,8 +17,15 @@ function ModulesView() {
     const [modules, setModules] = React.useState<Module[] | undefined>(undefined);
     const [moduleOptions, setModuleOptions] = React.useState<ModuleOption[] | undefined>(undefined);
     React.useEffect(() => {
-        messenger.onNotification(OptionsUpdated, async () => 
-            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions));
+        messenger.onNotification(OptionsUpdated, async () => {
+            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions);
+            messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
+        });
+        messenger.onNotification(ModuleListUpdated, async () => {
+            messenger.sendRequest(GetModules, { type: 'extension' }, false).then(setModules);
+            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions);
+        });
+        
         messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
         (async () => {
             const modules = await messenger.sendRequest(GetModules, { type: 'extension' });
