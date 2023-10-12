@@ -9,10 +9,12 @@ import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
 import { WorkspaceUtils } from './workspace-utils';
 import { exec } from 'child_process';
+import { PythonEnvironmentHelper } from './python-enviroment-activator';
 
 interface ModuleInstallOptions extends vscode.InputBoxOptions {
-    install: (urlOrName: string, destination) => Promise<void>;
+    install: (urlOrName: string, destination: string, context: ModulesHandler) => Promise<void>;
     getFileName?: (urlOrName: string) => string;
+    needsDestination?: () => Promise<boolean>;
 }
 
 @injectable()
@@ -26,6 +28,9 @@ export class ModulesHandler {
 
     @inject(SwitchApplicationRunner)
     private switchApplicationRunner: SwitchApplicationRunner;
+
+    @inject(PythonEnvironmentHelper)
+    private pythonEnvironmentHelper: PythonEnvironmentHelper;
 
     private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
     private moduleListCache: string[] | undefined = undefined;
@@ -137,11 +142,20 @@ export class ModulesHandler {
 
     // TODO this can probably be extended with an install function so each type can have its own installation method
     private readonly boxConfigurationsByType: { [key: string]: ModuleInstallOptions } = {
-        'URL': { title: 'URL', placeHolder: 'URL', install: this.installFromUrl, getFileName: (url) => url.split('/').pop()! },
-        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name', install: this.installFromPip },
-        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name', install: this.installFromConda},
-        'Github': { title: 'Github Url', placeHolder: 'URL', install: this.installFromGithub, getFileName: (url) => url.split('/').pop()! },
-        'Create New': { title: 'Module Name', placeHolder: 'Name', install: this.createNewModule}
+        'URL': { title: 'URL', placeHolder: 'URL', 
+            install: this.installFromUrl, 
+            getFileName: (url) => url.split('/').pop()! },
+        'PyPI': { title: 'PyPi Package Name', placeHolder: 'Package Name', 
+            install: this.installFromPip },
+        'Conda': { title: 'Conda Package Name', placeHolder: 'Package Name', 
+            install: this.installFromConda,
+            needsDestination: async () => (await this.pythonEnvironmentHelper.getActivationCommands()).length === 0
+        },
+        'Github': { title: 'Github Url', placeHolder: 'URL', 
+            install: this.installFromGithub, 
+            getFileName: (url) => url.split('/').pop()! },
+        'Create New': { title: 'Module Name', placeHolder: 'Name', 
+            install: this.createNewModule}
     };
 
     async installNewModule() {
@@ -150,24 +164,30 @@ export class ModulesHandler {
         const configuration = this.boxConfigurationsByType[type];
         const UrlOrName = await vscode.window.showInputBox(configuration);
         if (!UrlOrName) { return; }
-        const destination = (await vscode.window.showSaveDialog({ title: 'Destination', 
-            saveLabel: 'Install Here', 
-            defaultUri: vscode.Uri.file(`./${configuration.getFileName ? configuration.getFileName(UrlOrName) : UrlOrName}` ) }))?.fsPath;
-        if (!destination) { return; }
 
-        vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification, 
-            title: 'Installing Module', cancellable: false}, 
-            async (progress) => {
-                try {
-                    await configuration.install(UrlOrName, destination);
-                } catch (error) {
-                    vscode.window.showErrorMessage(`Error installing module: ${error}`);
-                }        
-        });
+        let destination;
+        if(!configuration.needsDestination || await configuration.needsDestination()) {
+            destination = (await vscode.window.showSaveDialog({ title: 'Destination', 
+                saveLabel: 'Install Here', 
+                defaultUri: vscode.Uri.file(`./${configuration.getFileName ? configuration.getFileName(UrlOrName) : UrlOrName}` ) }))?.fsPath;
+            if (!destination) { return; }
+        }
+
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification, 
+                title: 'Installing Module', cancellable: false}, 
+                async () => {
+                        await configuration.install(UrlOrName, destination, this);
+                    
+            });    
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error installing module: ${error}`);
+            return;
+        }        
 
         const searchPaths = (await this.optionsHandler.getOptions())?.moduleSearchPath ?? [];
-        if(!searchPaths.includes(destination)) {
+        if(destination && !searchPaths.includes(destination)) {
             searchPaths.push(destination);
             this.optionsHandler.setOption('moduleSearchPath', searchPaths);
             this.onDidChangeSearchPathEmitter.fire();
@@ -199,9 +219,15 @@ export class ModulesHandler {
         });
     }
 
-    private installFromConda(packageName: string, destination: string): Promise<void> {
+    private async installFromConda(packageName: string, destination: string, context: ModulesHandler): Promise<void> {
+        const activationCommands = await context.pythonEnvironmentHelper.getActivationCommands();
+        const commands = [
+            ...activationCommands,
+            // if environment install in environment else install globally
+            `conda install ${packageName} ${destination ? `-p ${destination}` : ''} --no-deps`
+        ];
         return new Promise<void>((res, rej) => {
-            exec(`conda install ${packageName} -p ${destination} --no-deps`, (error, stdout, stderr) => {
+            exec(commands.join(' & '), (error, stdout, stderr) => {
                 if (error) {
                     console.error(stderr);
                     rej(error);
