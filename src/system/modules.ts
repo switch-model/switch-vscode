@@ -59,6 +59,7 @@ export class ModulesHandler {
         const moduleList: string[] = await this.getModuleList(useCache);
         return await Promise.all(activatedModules
             .concat(moduleList.filter(module => !activatedModules.includes(module)))
+            .filter(module => moduleList.includes(module))
             .map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
