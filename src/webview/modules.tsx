@@ -17,8 +17,10 @@ function ModulesView() {
     const [modules, setModules] = React.useState<Module[] | undefined>(undefined);
     const [moduleOptions, setModuleOptions] = React.useState<ModuleOption[] | undefined>(undefined);
     React.useEffect(() => {
-        messenger.onNotification(OptionsUpdated, async () => 
-            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions));
+        messenger.onNotification(OptionsUpdated, async () => {
+            messenger.sendRequest(GetModuleOptions, { type: 'extension' }, modules?.filter(module => module.active).map(module => module.name)).then(setModuleOptions);
+            messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
+        });
         messenger.sendRequest(GetOptions, { type: 'extension' }).then(options => setSearchPaths(options?.moduleSearchPath?.length ? options.moduleSearchPath : ['']));
         (async () => {
             const modules = await messenger.sendRequest(GetModules, { type: 'extension' });
@@ -32,15 +34,15 @@ function ModulesView() {
         {searchPaths ? searchPaths.map((path, i) => <SearchPath key={i} path={path} index={i}
             onChange={(path) => {
                 searchPaths[i] = path;
-                setSearchPaths([...searchPaths]);
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
             onDelete={() => {
                 searchPaths.splice(i, 1);
-                setSearchPaths([...searchPaths]);
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
             onMove={(from, to) => {
                 searchPaths.splice(from < to ? to - 1 : to, 0, searchPaths.splice(from, 1)[0]);
-                setSearchPaths([...searchPaths]);
+                updateSearchPaths(searchPaths, setSearchPaths, messenger);
             }}
         />) : <VSCodeProgressRing />}
         <VSCodeButton className='w-fit self-end my-1' onClick={() => setSearchPaths([...searchPaths || [], ''])}>Add</VSCodeButton>
@@ -84,6 +86,11 @@ function ModulesView() {
 
     </Layout>;
 }
+
+function updateSearchPaths(searchPaths: string[], setSearchPaths: (searchPaths: string[]) => void, messenger: Messenger) {
+    setSearchPaths([...searchPaths]);
+    messenger.sendNotification(SetOptions, { type: 'extension' }, { name: 'moduleSearchPath', params: searchPaths.length > 0 ? searchPaths : undefined });
+};
 
 type SearchPathProps = {
     index: number;
@@ -133,7 +140,7 @@ function SearchPath({ path, index, onDelete, onChange, onMove }: SearchPathProps
                 className='grow py-1'
                 placeholder='Path'
                 value={path}
-                onChange={(e: any) => ''}
+                onChange={(e: any) => onChange(e.target.value)}
             >
                 <div slot="end" className='flex align-items-center'>
                     <VSCodeButton appearance="icon" title="Choose Folder" onClick={async () => {
