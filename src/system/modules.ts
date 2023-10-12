@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import _ from 'lodash';
 
-import { inject, injectable } from "inversify";
+import { inject, injectable, postConstruct } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
@@ -24,6 +24,16 @@ export class ModulesHandler {
 
     private onDidUpdateModuleListEmitter = new vscode.EventEmitter<void>();
     onDidUpdateModuleList = this.onDidUpdateModuleListEmitter.event;
+
+    private searchPathWatchers: Map<string,vscode.FileSystemWatcher> = new Map();
+
+    @postConstruct()
+    init() {
+        this.watchModuleSearchPaths();
+        this.optionsHandler.onDidUpdate(() => {
+            this.watchModuleSearchPaths();
+        });
+    }
 
     async loadModules(useCache = true): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
@@ -89,6 +99,34 @@ export class ModulesHandler {
 
     invalidateModuleListCache() {
         this.moduleListCache = undefined;
+    }
+
+    private async watchModuleSearchPaths() {
+        const searchPaths = (await this.optionsHandler.getOptions())?.moduleSearchPath ?? [];
+        // newly added paths
+        _.difference(searchPaths, Array.from(this.searchPathWatchers.keys())).forEach(path => {
+            const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(path, '**.py'));
+            watcher.onDidChange(async uri => {
+                const modulename = uri.path.split('/').pop()?.replace('.py', '');
+                if(modulename) {
+                    this.moduleOptionsCache.delete(modulename!);
+                    this.onDidUpdateModuleListEmitter.fire();
+                }
+            });
+            watcher.onDidCreate(async uri => {
+                this.onDidUpdateModuleListEmitter.fire();
+            });
+            watcher.onDidDelete(async uri => {
+                this.onDidUpdateModuleListEmitter.fire();
+            });
+            this.searchPathWatchers.set(path, watcher);
+
+        });
+        // removed paths
+        _.difference(Array.from(this.searchPathWatchers.keys()), searchPaths).forEach(path => {
+            this.searchPathWatchers.get(path)?.dispose();
+            this.searchPathWatchers.delete(path);
+        });
     }
 
     watch(): vscode.Disposable {
