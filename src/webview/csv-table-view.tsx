@@ -21,13 +21,16 @@ function CsvTableView() {
     return tableData ? <div style={{overflow: 'auto', minWidth: 'max-content'}}>
         <VSCodeDataGrid>
             <VSCodeDataGridRow rowType='header'>
-                {tableData.headers.map((value, i) => <VSCodeDataGridCell cellType='columnheader' gridColumn={(i + 1).toString()}>
+                {tableData.headers.map((value, i) => <VSCodeDataGridCell key={i} cellType='columnheader' gridColumn={(i + 1).toString()}>
                         {value}
                     </VSCodeDataGridCell>)}
             </VSCodeDataGridRow>
             {tableData.rows.map(row => 
                 <VSCodeDataGridRow>
-                    {row.map((value, i) => <VSCodeDataGridCell contentEditable={tableData.editable ? 'true' : 'false'} gridColumn={(i + 1).toString().toString()}>{value}</VSCodeDataGridCell>)}
+                    {row.map((value, i) => 
+                    <VSCodeDataGridCell key={i} contentEditable={tableData.editable ? 'true' : 'false'} onInput={e => console.log(e.currentTarget.innerText)} gridColumn={(i + 1).toString().toString()}>
+                        {value}
+                    </VSCodeDataGridCell>)}
                 </VSCodeDataGridRow>)
             }
         </VSCodeDataGrid>
