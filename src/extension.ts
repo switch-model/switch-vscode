@@ -12,6 +12,7 @@ import containerModule from './container-module';
 import { ExtensionContext } from './constants';
 import { SolverTabViewProvider } from './providers/solver-tab';
 import { OptionsFileHandler } from './system/options';
+import { CsvViewProvider } from './csv-viewer/csv-view-provider';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -30,6 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const outputsViewProvider = container.get(OutputsViewProvider);
     const solverViewProvider = container.get(SolverViewProvider);
     const solverTabViewProvider = container.get(SolverTabViewProvider);
+    const csvViewProvider = container.get(CsvViewProvider);
 
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(ScenarioViewProvider.viewType, scenarioViewProvider),
@@ -38,6 +40,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.registerWebviewViewProvider(OutputsViewProvider.viewType, outputsViewProvider),
         vscode.window.registerWebviewViewProvider(SolverViewProvider.viewType, solverViewProvider),
         vscode.window.registerWebviewViewProvider(SolverTabViewProvider.viewType, solverTabViewProvider),
+        vscode.window.registerCustomEditorProvider(CsvViewProvider.viewType, csvViewProvider)
     );
 
     const optionsFileHandler = container.get(OptionsFileHandler);

@@ -18,6 +18,17 @@
     "ms-python.python"
   ],
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "switch.csv-viewer",
+        "displayName": "CSV Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.csv"
+          }
+        ]
+      }
+    ],
     "views": {
       "switchView": [
         {
@@ -104,7 +115,8 @@
     "terminate": "^2.6.1",
     "vscode-messenger": "^0.4.5",
     "vscode-messenger-common": "^0.4.5",
-    "vscode-messenger-webview": "^0.4.5"
+    "vscode-messenger-webview": "^0.4.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",

@@ -13,6 +13,8 @@ import { Solvers } from '../system/solvers';
 import { NotificationType, WebviewIdMessageParticipant } from 'vscode-messenger-common';
 import path from 'node:path';
 import { WorkspaceUtils } from '../system/workspace-utils';
+import { GetTable } from '../csv-viewer/messages';
+import { TableDataProvider } from '../csv-viewer/table-provider';
 
 @injectable()
 export class SwitchMessenger {
@@ -26,7 +28,10 @@ export class SwitchMessenger {
     @inject(ModulesHandler)
     private modulesHandler: ModulesHandler;
 
-    private messenger: Messenger;
+    @inject(TableDataProvider)
+    private readonly dataProvider: TableDataProvider;
+
+    messenger: Messenger;
 
     private webViewsByType: Map<string, WebviewIdMessageParticipant> = new Map();
 
@@ -124,6 +129,9 @@ export class SwitchMessenger {
             await vscode.commands.executeCommand('revealInExplorer', uri);
             vscode.commands.executeCommand('revealInExplorer', uri);
         });
+
+        // CSV viewer
+        this.messenger.onRequest(GetTable, async (uri: string) => this.dataProvider.getTable(vscode.Uri.parse(uri)));
     }
 
     private sendWebviewNotification(notificationType: NotificationType<any>, notification: any, viewType: string) {
