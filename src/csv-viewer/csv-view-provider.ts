@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { inject, injectable } from "inversify";
+import { inject, injectable, postConstruct } from "inversify";
 import { SwitchMessenger } from '../providers/messenger';
 import { ExtensionContext } from '../constants';
 import { generateHtml } from '../providers/utils';
 import { TableDataProvider as TableDataProvider, WorkbookDocument } from './table-provider';
-import { GetTable } from './messages';
+import { write, writeFile } from 'xlsx'; 
 
 
 @injectable()
@@ -14,8 +14,8 @@ export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocu
 
 	private _view?: vscode.WebviewPanel;
 
-    private didChangeCustomDocumentEmitter = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<WorkbookDocument> | vscode.CustomDocumentContentChangeEvent<WorkbookDocument>>();
-    readonly onDidChangeCustomDocument: vscode.Event<vscode.CustomDocumentEditEvent<WorkbookDocument> | vscode.CustomDocumentContentChangeEvent<WorkbookDocument>>;
+    private didChangeCustomDocumentEmitter = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<WorkbookDocument>>();
+    onDidChangeCustomDocument: vscode.Event<vscode.CustomDocumentEditEvent<WorkbookDocument>> = this.didChangeCustomDocumentEmitter.event;
 
 	@inject(SwitchMessenger)
     private readonly messenger: SwitchMessenger;
@@ -26,13 +26,18 @@ export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocu
     @inject(TableDataProvider)
     private readonly dataProvider: TableDataProvider;
 
-
-    saveCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-        throw new Error('Method not implemented.');
+    @postConstruct()
+    init() {
+        this.dataProvider.onDidChangeDocument(e => this.didChangeCustomDocumentEmitter.fire(e));
     }
 
-    saveCustomDocumentAs(document: WorkbookDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Thenable<void> {
-        throw new Error('Method not implemented.');
+
+    async saveCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Promise<void> {
+        vscode.workspace.fs.writeFile(document.uri, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
+    }
+
+    async saveCustomDocumentAs(document: WorkbookDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<void> {
+        await writeFile(document.workbook, destination.fsPath, {bookType: 'csv'});
     }
 
     revertCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {

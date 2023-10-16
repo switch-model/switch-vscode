@@ -13,7 +13,7 @@ import { Solvers } from '../system/solvers';
 import { NotificationType, WebviewIdMessageParticipant } from 'vscode-messenger-common';
 import path from 'node:path';
 import { WorkspaceUtils } from '../system/workspace-utils';
-import { GetTable } from '../csv-viewer/messages';
+import { CellChanged, GetTable } from '../csv-viewer/messages';
 import { TableDataProvider } from '../csv-viewer/table-provider';
 
 @injectable()
@@ -132,6 +132,7 @@ export class SwitchMessenger {
 
         // CSV viewer
         this.messenger.onRequest(GetTable, async (uri: string) => this.dataProvider.getTable(vscode.Uri.parse(uri)));
+        this.messenger.onNotification(CellChanged, async (data) => { this.dataProvider.updateCell(data.uri, data.row, data.column, data.value); });
     }
 
     private sendWebviewNotification(notificationType: NotificationType<any>, notification: any, viewType: string) {
