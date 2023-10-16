@@ -32,12 +32,12 @@ export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocu
     }
 
 
-    async saveCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Promise<void> {
-        vscode.workspace.fs.writeFile(document.uri, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
+    saveCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {
+        return vscode.workspace.fs.writeFile(document.uri, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
     }
 
-    async saveCustomDocumentAs(document: WorkbookDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<void> {
-        await writeFile(document.workbook, destination.fsPath, {bookType: 'csv'});
+    saveCustomDocumentAs(document: WorkbookDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Thenable<void> {
+        return vscode.workspace.fs.writeFile(destination, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
     }
 
     revertCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {
