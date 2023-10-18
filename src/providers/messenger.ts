@@ -4,7 +4,7 @@ import { CreateFile, CreateFolder, GetFullOptions, GetModules, GetOptions,
     GetScenarios, InstallModule, OptionsUpdated, SelectFile, SelectScenario, 
     SetMixedOptions, SetOptions, SetScenarioOptions, SetScenariosPath, 
     UpdateModule, Solve, SolveAll, KillSolver, GetSolverOutput, GetSolvers, SolverUpdate,
-    SolverOutputUpdate, CleanScenarioQueue, RevealOutputs, GetModuleOptions } from "../common/messages";
+    SolverOutputUpdate, CleanScenarioQueue, RevealOutputs, GetModuleOptions, ModuleListUpdated } from "../common/messages";
 import { inject, injectable, postConstruct } from 'inversify';
 import { OptionsFileHandler } from '../system/options';
 import { Module } from '../common/modules';
@@ -145,6 +145,9 @@ export class SwitchMessenger {
     protected init() {
         this.optionsFileHandler.onDidUpdate(() => {
             this.optionsUpdated();
+        });
+        this.modulesHandler.onDidUpdateModuleList(() => {
+            this.messenger.sendNotification(ModuleListUpdated, { type: 'broadcast' });
         });
 
         this.solver.onSolveUpdate(update => {

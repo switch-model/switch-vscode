@@ -3,7 +3,7 @@ import _ from 'lodash';
 import https from 'https';
 import fs from 'fs';
 
-import { inject, injectable } from "inversify";
+import { inject, injectable, postConstruct } from "inversify";
 import { Module, ModuleOption } from "../common/modules";
 import { OptionsFileHandler } from "./options";
 import { SwitchApplicationRunner } from './switch-application-runner';
@@ -30,6 +30,21 @@ export class ModulesHandler {
     private moduleOptionsCache: Map<string, ModuleOption[]> = new Map();
     private moduleListCache: string[] | undefined = undefined;
 
+    private lastModulesWrite = 0;
+
+    private onDidUpdateModuleListEmitter = new vscode.EventEmitter<void>();
+    onDidUpdateModuleList = this.onDidUpdateModuleListEmitter.event;
+
+    private searchPathWatchers: Map<string,vscode.FileSystemWatcher> = new Map();
+
+    @postConstruct()
+    init() {
+        this.watchModuleSearchPaths();
+        this.optionsHandler.onDidUpdate(() => {
+            this.watchModuleSearchPaths();
+        });
+    }
+
     async loadModules(useCache = true): Promise<Module[]> {
         const uri = await this.getModuleFilePath();
         let activatedModules: string[] = [];
@@ -44,6 +59,7 @@ export class ModulesHandler {
         const moduleList: string[] = await this.getModuleList(useCache);
         return await Promise.all(activatedModules
             .concat(moduleList.filter(module => !activatedModules.includes(module)))
+            .filter(module => moduleList.includes(module))
             .map(async module => (<Module>{ 
             active: activatedModules.includes(module),
             name: module,
@@ -70,6 +86,7 @@ export class ModulesHandler {
             }
             
             await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(newContent.join('\n')));
+            this.lastModulesWrite = Date.now();
         }
     }
 
@@ -93,6 +110,46 @@ export class ModulesHandler {
 
     invalidateModuleListCache() {
         this.moduleListCache = undefined;
+    }
+
+    private async watchModuleSearchPaths() {
+        const searchPaths = (await this.optionsHandler.getOptions())?.moduleSearchPath ?? [];
+        // newly added paths
+        _.difference(searchPaths, Array.from(this.searchPathWatchers.keys())).forEach(path => {
+            const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(path, '**.py'));
+            watcher.onDidChange(async uri => {
+                const modulename = uri.path.split('/').pop()?.replace('.py', '');
+                if(modulename) {
+                    this.moduleOptionsCache.delete(modulename!);
+                    this.onDidUpdateModuleListEmitter.fire();
+                }
+            });
+            watcher.onDidCreate(async uri => {
+                this.onDidUpdateModuleListEmitter.fire();
+            });
+            watcher.onDidDelete(async uri => {
+                this.onDidUpdateModuleListEmitter.fire();
+            });
+            this.searchPathWatchers.set(path, watcher);
+
+        });
+        // removed paths
+        _.difference(Array.from(this.searchPathWatchers.keys()), searchPaths).forEach(path => {
+            this.searchPathWatchers.get(path)?.dispose();
+            this.searchPathWatchers.delete(path);
+        });
+    }
+
+    watch(): vscode.Disposable {
+        const watcher = vscode.workspace.createFileSystemWatcher('**/modules.txt');
+        watcher.onDidChange(async uri => {
+            const stat = await vscode.workspace.fs.stat(uri);
+            if (stat.mtime > this.lastModulesWrite) {
+                this.onDidUpdateModuleListEmitter.fire();
+            }
+
+        });
+        return watcher;
     }
 
     private async getModuleList(useCache = true): Promise<string[]> {
