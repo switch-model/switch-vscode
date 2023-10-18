@@ -13,6 +13,7 @@ import { ExtensionContext } from './constants';
 import { SolverTabViewProvider } from './providers/solver-tab';
 import { OptionsFileHandler } from './system/options';
 import { CsvViewProvider } from './csv-viewer/csv-view-provider';
+import { ModulesHandler } from './system/modules';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -44,8 +45,10 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     const optionsFileHandler = container.get(OptionsFileHandler);
-
     context.subscriptions.push(optionsFileHandler.watch());
+
+    const modulesHandler = container.get(ModulesHandler);
+    context.subscriptions.push(modulesHandler.watch());
 }
 
 // This method is called when your extension is deactivated
