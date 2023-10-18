@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import { Messenger } from "vscode-messenger-webview";
-import { CellChanged, GetTable } from '../csv-viewer/messages';
-import { TableData } from '../csv-viewer/table-provider';
+import { CellChanged, DocumentChanged, GetTable } from '../csv-viewer/messages';
+import { TableData } from '../csv-viewer/table-data-provider';
 import { VSCodeDataGrid, VSCodeDataGridCell, VSCodeDataGridRow, VSCodeProgressRing } from '@vscode/webview-ui-toolkit/react';
 import { DataGridCell } from '@vscode/webview-ui-toolkit';
 
@@ -17,13 +17,22 @@ function CsvTableView() {
     const [tableData, setTableData] = React.useState<TableData | undefined>();
     React.useEffect(() => {
         messenger.sendRequest(GetTable, { type: 'extension'}, documentUri).then(setTableData);
+        messenger.onNotification(DocumentChanged, e => {
+            if(e.uri === documentUri) {
+                // out of some weird reason the rerendering does not work correctly if we dont set this to undefined first
+                // no idea what problem react has here
+                setTableData(undefined); 
+                setTableData(e.data);
+            }
+        });
     }, []);
     const grid = React.useRef<any>(undefined);
-    const setRef = React.useCallback(node => {    
-        node.addEventListener('cell-focused', e => cellFocused(e, tableData!));
-        grid.current = node;
+    const setRef = React.useCallback(node => { 
+        if(node) {
+            node.addEventListener('cell-focused', e => cellFocused(e, tableData!));
+        }
+        grid.current = node;    
     }, [tableData]);
-    console.log(tableData);
     return tableData ? <div style={{overflow: 'auto', minWidth: 'max-content'}}>
         <VSCodeDataGrid ref={setRef}>
             <VSCodeDataGridRow rowType='header'>
@@ -45,7 +54,6 @@ function CsvTableView() {
 
 // code taken from https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/default/editable-data-grid/README.md
 function cellFocused(e: Event, tableData: TableData) {
-    console.log('cellFocused');
     const cell = e.target as DataGridCell;
     // Do not continue if `cell` is undefined/null or is not a grid cell
     if (!cell || cell.role !== "gridcell") {
@@ -119,7 +127,6 @@ function syncCellChanges(cell: DataGridCell, tableData: TableData) {
 
     if (originalValue.toString() !== newValue) {
         tableData.rows[row][column] = newValue;
-        console.log(`Original value: ${originalValue}, New value: ${newValue}`);
         messenger.sendNotification(CellChanged, { type: 'extension'}, {
             uri: documentUri,
             row: tableData.headers ?  row + 1 : row,

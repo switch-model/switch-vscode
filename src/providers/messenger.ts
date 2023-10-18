@@ -13,8 +13,8 @@ import { Solvers } from '../system/solvers';
 import { NotificationType, WebviewIdMessageParticipant } from 'vscode-messenger-common';
 import path from 'node:path';
 import { WorkspaceUtils } from '../system/workspace-utils';
-import { CellChanged, GetTable } from '../csv-viewer/messages';
-import { TableDataProvider } from '../csv-viewer/table-provider';
+import { CellChanged, DocumentChanged, GetTable } from '../csv-viewer/messages';
+import { TableDataProvider } from '../csv-viewer/table-data-provider';
 
 @injectable()
 export class SwitchMessenger {
@@ -165,6 +165,10 @@ export class SwitchMessenger {
 
         this.modulesHandler.onDidChangeSearchPath(() => {
             this.optionsUpdated();
+        });
+
+        this.dataProvider.onDidChangeDocumentInternal(e => {
+            this.messenger.sendNotification(DocumentChanged , {type: 'webview', webviewType: 'switch.csv-viewer'}, e);
         });
 
     }

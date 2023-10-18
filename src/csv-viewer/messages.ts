@@ -1,5 +1,5 @@
 import { NotificationType, RequestType } from "vscode-messenger-common";
-import { TableData } from "./table-provider";
+import { TableData } from "./table-data-provider";
 
 export const GetTable: NotificationType<TableData> = {
     method: 'GetTable'
@@ -15,4 +15,13 @@ export interface CellChangedData {
 
 export const CellChanged: NotificationType<CellChangedData> = {
     method: 'CellChanged'
+};
+
+export interface DocumentChangedEvent {
+    uri: string;
+    data: TableData;
+}
+
+export const DocumentChanged: NotificationType<DocumentChangedEvent> = {
+    method: 'DocumentChanged'
 };

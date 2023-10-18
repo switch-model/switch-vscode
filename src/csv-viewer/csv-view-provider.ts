@@ -3,16 +3,15 @@ import { inject, injectable, postConstruct } from "inversify";
 import { SwitchMessenger } from '../providers/messenger';
 import { ExtensionContext } from '../constants';
 import { generateHtml } from '../providers/utils';
-import { TableDataProvider as TableDataProvider, WorkbookDocument } from './table-provider';
-import { write, writeFile } from 'xlsx'; 
+import { TableDataProvider as TableDataProvider, WorkbookDocument } from './table-data-provider';
+import { write } from 'xlsx'; 
+import { DocumentChanged } from './messages';
 
 
 @injectable()
 export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocument> {
 
 	public static readonly viewType = 'switch.csv-viewer';
-
-	private _view?: vscode.WebviewPanel;
 
     private didChangeCustomDocumentEmitter = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<WorkbookDocument>>();
     onDidChangeCustomDocument: vscode.Event<vscode.CustomDocumentEditEvent<WorkbookDocument>> = this.didChangeCustomDocumentEmitter.event;
@@ -31,7 +30,6 @@ export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocu
         this.dataProvider.onDidChangeDocument(e => this.didChangeCustomDocumentEmitter.fire(e));
     }
 
-
     saveCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {
         return vscode.workspace.fs.writeFile(document.uri, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
     }
@@ -40,21 +38,21 @@ export class CsvViewProvider implements vscode.CustomEditorProvider<WorkbookDocu
         return vscode.workspace.fs.writeFile(destination, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
     }
 
-    revertCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-        throw new Error('Method not implemented.');
+    async revertCustomDocument(document: WorkbookDocument, cancellation: vscode.CancellationToken): Promise<void> {
+        return this.dataProvider.revertDocument(document);
     }
 
-    backupCustomDocument(document: WorkbookDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
-        throw new Error('Method not implemented.');
+    async backupCustomDocument(document: WorkbookDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Promise<vscode.CustomDocumentBackup> {
+        await vscode.workspace.fs.writeFile(context.destination, write(document.workbook, {bookType: 'csv', type: 'buffer'}));
+        return {id: context.destination.toString(), delete: () => vscode.workspace.fs.delete(context.destination)};
     }
 
     async openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): Promise<WorkbookDocument> {
-        return this.dataProvider.resolveDocument(uri); //await this.messenger.messenger.sendRequest(GetWorkbook, {type: 'extension'}, uri.toString()); 
+        return this.dataProvider.resolveDocument(openContext.backupId ? vscode.Uri.parse(openContext.backupId) : uri);
     }
 
     resolveCustomEditor(document: WorkbookDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
-        this._view = webviewPanel;
-        const id = this.messenger.registerWebview(webviewPanel);
+        this.messenger.registerWebview(webviewPanel, {broadcastMethods: [DocumentChanged.method]});
 
 		webviewPanel.webview.options = {
 			// Allow scripts in the webview

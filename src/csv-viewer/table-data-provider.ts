@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { injectable } from "inversify";
 import { read, WorkBook, utils } from "xlsx";
+import { DocumentChangedEvent } from "./messages";
 
 export interface WorkbookDocument extends vscode.CustomDocument {
     workbook: WorkBook;
@@ -19,6 +20,9 @@ export class TableDataProvider {
 
     private onDidChangeDocumentEmitter = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<WorkbookDocument>>();
     readonly onDidChangeDocument: vscode.Event<vscode.CustomDocumentEditEvent<WorkbookDocument>> = this.onDidChangeDocumentEmitter.event;
+    
+    private onDidChangeDocumentInternalEmitter = new vscode.EventEmitter<DocumentChangedEvent>();
+    readonly onDidChangeDocumentInternal: vscode.Event<DocumentChangedEvent> = this.onDidChangeDocumentInternalEmitter.event;
 
     async resolveDocument(uri: vscode.Uri): Promise<WorkbookDocument> {
         if(this.documents.has(uri.toString())) {
@@ -47,6 +51,12 @@ export class TableDataProvider {
         };
     }
 
+    async revertDocument(document: WorkbookDocument): Promise<void> {
+        this.documents.delete(document.uri.toString());
+         await this.resolveDocument(document.uri);
+        this.onDidChangeDocumentInternalEmitter.fire({uri: document.uri.toString(), data: await this.getTable(document.uri)});
+    }
+
     updateCell(uri: string, row: number, column: number, value: string) {
         const workbook = this.documents.get(uri);
         if(!workbook) {
@@ -59,9 +69,11 @@ export class TableDataProvider {
             document: workbook, 
             undo: async () => {
                 sheetData[row][column].v = oldValue;
+                this.onDidChangeDocumentInternalEmitter.fire({uri, data: await this.getTable(workbook.uri)});
             },
             redo: async () => {
                 sheetData[row][column].v = value;
+                this.onDidChangeDocumentInternalEmitter.fire({uri, data: await this.getTable(workbook.uri)});
             }
         });
     }
