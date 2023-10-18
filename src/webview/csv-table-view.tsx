@@ -79,19 +79,19 @@ function cellFocused(e: Event, tableData: TableData) {
         // the cell is no longer focused
         cell.removeEventListener("blur", handleBlurClosure);
         cell.removeEventListener("keydown", handleKeydownClosure);
-        cell.removeEventListener("click", handleClickClosure);
+        cell.removeEventListener("mousedown", handleClickClosure);
     };
-
     cell.addEventListener("keydown", handleKeydownClosure);
     // Run the click listener once so that if a cell's text is clicked a
     // second time the cursor will move to the given position in the string
     // (versus reselecting the cell text again)
-    cell.addEventListener("click", handleClickClosure, { once: true });
+    cell.addEventListener("mousedown", handleClickClosure, { once: true });
     cell.addEventListener("blur", handleBlurClosure);
 }
 
 // Make a given cell editable
 function setCellEditable(cell: DataGridCell) {
+    console.log('set editable');
     cell.setAttribute("contenteditable", "true");
     // selectCellText(cell);
   }
