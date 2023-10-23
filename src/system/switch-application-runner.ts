@@ -1,8 +1,8 @@
-import { injectable } from "inversify";
+import { injectable, inject } from "inversify";
 import { ChildProcess, spawn } from 'node:child_process';
 import * as vscode from 'vscode';
 import { SwitchApplcationState } from "../common/solver";
-import os from 'os';
+import { PythonEnvironmentHelper } from "./python-enviroment-activator";
 const terminate = require('terminate');
 
 
@@ -14,23 +14,19 @@ type switchCommand = 'solve' | 'solve-scenarios' | 'test' | 'upgrade' | 'info' |
 @injectable()
 export class SwitchApplicationRunner {
 
+    @inject(PythonEnvironmentHelper)
+    private pythonEnvironmentHelper: PythonEnvironmentHelper;
+
     /**
      * Launches the command and returns a running process which can be monitored
      * @returns the running Process
      */
     async launch(command: switchCommand, params: string[]): Promise<SwitchApplicationProcess> {
-        const pythonExtension = await vscode.extensions.getExtension('ms-python.python')?.exports;
-        const pythonEnvironment = await pythonExtension?.environments.resolveEnvironment(pythonExtension.environments.getActiveEnvironmentPath());
-        let activateCommands: string[] = [];
-        if (pythonEnvironment?.environment?.type === 'Conda') {
-            activateCommands = [
-                `${pythonEnvironment.environment.folderUri.fsPath}/../../${os.platform() === 'win32' ? 'Scripts' : 'bin'}/activate`, // TODO no idea if this is the standard for conda or if we need some other way to find the activate script
-                `conda activate ${pythonEnvironment.environment.name}`,    
-            ];
-            // throw new Error('No python environment found. Please select a python environment before executing switch.');
-        }
+        
 
         const switchLocation =  vscode.workspace.getConfiguration('switch').get<string>('preferredExecutableLocation');
+
+        const activateCommands = await this.pythonEnvironmentHelper.getActivationCommands();
 
         const commands = [
             ...activateCommands,

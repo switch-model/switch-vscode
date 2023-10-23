@@ -8,6 +8,8 @@ import { SolverViewProvider } from './providers/solver';
 import { OptionsFileHandler } from "./system/options";
 import { SolverTabViewProvider } from "./providers/solver-tab";
 import { Solvers } from "./system/solvers";
+import { PythonEnvironmentHelper } from "./system/python-enviroment-activator";
+import { SwitchApplicationRunner } from "./system/switch-application-runner";
 
 export default new ContainerModule(bind => {
     bind(SwitchMessenger).toSelf();
@@ -18,4 +20,6 @@ export default new ContainerModule(bind => {
     bind(SolverViewProvider).toSelf();
     bind(SolverTabViewProvider).toSelf();
     bind(OptionsFileHandler).toSelf();
+    bind(PythonEnvironmentHelper).toSelf();
+    bind(SwitchApplicationRunner).toSelf();
 });
