@@ -75,6 +75,7 @@ export class Solvers {
 
     
 
+
     private async watchSolver(process: SwitchApplicationProcess, solverId: string, scenario?: string) {
         this.currentSolvers.set(solverId, {id: solverId, process, scenario});
         let progressState: ProgressState = { progress: 0, step: 'Starting' };
@@ -93,7 +94,7 @@ export class Solvers {
                 this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Error, id: solverId, error: process.errors.join('\n') });
             }
         });
-
+        vscode.commands.executeCommand('workbench.view.extension.switchRunningSolvers');
     }
 
     private readonly ComponentsContructedRegexp = /Constructed \d+ of \d+ components \(\d+%\)/;

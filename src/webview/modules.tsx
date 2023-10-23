@@ -177,16 +177,17 @@ type FoundModuleProps = {
 };
 
 function FoundModule({ module, onDidChangeActivation }: FoundModuleProps) {
-    const [expanded, setExpanded] = React.useState(false);
+    // TODO reimplement expand when we have a way of getting module descripitions
+    // const [expanded, setExpanded] = React.useState(false);
     return <Layout direction='vertical'>
         <Layout direction='horizontal'>
-            <VSCodeButton appearance="icon" title="Expand" onClick={() => setExpanded(!expanded)}>
+            {/* <VSCodeButton appearance="icon" title="Expand" onClick={() => setExpanded(!expanded)}>
                 <span className={`codicon codicon-${expanded ? 'chevron-down' : 'chevron-right'}`}></span>
-            </VSCodeButton>
+            </VSCodeButton> */}
             <Label className=' grow break-words overflow-hidden pr-2'>{module.name}</Label>
             <VSCodeCheckbox checked={module.active} onChange={e => onDidChangeActivation(module,  e.target.checked)}></VSCodeCheckbox>
         </Layout>
-        {expanded && <Label>{module.description}</Label>}
+        {/* {expanded && <Label>{module.description}</Label>} */}
     </Layout>;
 }
 
