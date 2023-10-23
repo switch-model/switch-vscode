@@ -3,7 +3,6 @@ import { inject, injectable } from "inversify";
 import { ProgressState, ScenarioState, SolverOutputUpdateData, SolverUpdateData, SolverUpdateType, SwitchApplcationState } from '../common/solver';
 import { SwitchApplicationProcess, SwitchApplicationRunner } from './switch-application-runner';
 import { OptionsFileHandler } from './options';
-import path from 'node:path';
 
 export interface Solver {
     id: string;
@@ -37,7 +36,7 @@ export class Solvers {
             const solver = await this.switchApplication.launch(scenario ? 'solve-scenarios' : 'solve', scenario ? ['--scenario', scenario] : []);
             const solverId = `${scenario ?? 'default scenario'}-${this.solverIdCounter++}`;
             this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Started, id: solverId });
-            this.watchSolver(solver, solverId);
+            this.watchSolver(solver, solverId, scenario);
         } catch (e) {
             vscode.window.showErrorMessage(e.message);
         }
@@ -76,10 +75,11 @@ export class Solvers {
 
     
 
-    private async watchSolver(solver: SwitchApplicationProcess, solverId: string) {
-        this.currentSolvers.set(solverId, solver);
+
+    private async watchSolver(process: SwitchApplicationProcess, solverId: string, scenario?: string) {
+        this.currentSolvers.set(solverId, {id: solverId, process, scenario});
         let progressState: ProgressState = { progress: 0, step: 'Starting' };
-        solver.onData(data => {
+        process.onData(data => {
             const newState = this.updateProgress(data, progressState);
             if (progressState !== newState) {
                 progressState = newState;
@@ -87,14 +87,14 @@ export class Solvers {
             }
             this.onSolveOutputUpdateEmitter.fire({ id: solverId, data });
         });
-        solver.onStateChange(state => {
+        process.onStateChange(state => {
             if (state === SwitchApplcationState.Finished) {
                 this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Finished, id: solverId }); // TODO results
             } else if (state === SwitchApplcationState.Error) {
-                this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Error, id: solverId, error: solver.errors.join('\n') });
+                this.onSolveUpdateEmitter.fire({ type: SolverUpdateType.Error, id: solverId, error: process.errors.join('\n') });
             }
         });
-
+        vscode.commands.executeCommand('workbench.view.extension.switchRunningSolvers');
     }
 
     private readonly ComponentsContructedRegexp = /Constructed \d+ of \d+ components \(\d+%\)/;

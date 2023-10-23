@@ -9,6 +9,8 @@ import { OptionsFileHandler } from "./system/options";
 import { SolverTabViewProvider } from "./providers/solver-tab";
 import { Solvers } from "./system/solvers";
 import { CsvViewProvider } from "./csv-viewer/csv-view-provider";
+import { PythonEnvironmentHelper } from "./system/python-enviroment-activator";
+import { SwitchApplicationRunner } from "./system/switch-application-runner";
 
 export default new ContainerModule(bind => {
     bind(SwitchMessenger).toSelf();
@@ -20,4 +22,6 @@ export default new ContainerModule(bind => {
     bind(SolverTabViewProvider).toSelf();
     bind(CsvViewProvider).toSelf();
     bind(OptionsFileHandler).toSelf();
+    bind(PythonEnvironmentHelper).toSelf();
+    bind(SwitchApplicationRunner).toSelf();
 });
