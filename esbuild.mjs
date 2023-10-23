@@ -58,6 +58,7 @@ const webviewCtx = await esbuild.context({
         'src/webview/scenario.tsx',
         'src/webview/solver.tsx',
         'src/webview/solver-tab.tsx',
+        'src/webview/csv-table-view.tsx',
     ],
     outdir: 'out/webview',
     bundle: true,

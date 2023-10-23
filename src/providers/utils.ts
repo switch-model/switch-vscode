@@ -9,7 +9,7 @@ export function getNonce() {
 	return text;
 }
 
-export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, js: string[], css: string[]): string {
+export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, js: string[], css: string[], additionalJs?: string[]): string {
     const nonce = getNonce();
     const jsUris = js.map(file => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'out', 'webview', file)));
     const cssUris = css.map(file => webview.asWebviewUri(vscode.Uri.joinPath(extUri, 'out', 'webview', file)));
@@ -34,6 +34,7 @@ export function generateHtml(webview: vscode.Webview, extUri: vscode.Uri, js: st
 			</head>
 			<body>
                 <div id="main"></div>
+				${additionalJs?.map(code => `<script nonce="${nonce}"">${code}</script>`).join('\n') ?? ''}
                 ${jsUris.map(uri => `<script nonce="${nonce}" src="${uri}"></script>`).join('\n')}
 			</body>
 			</html>`;
