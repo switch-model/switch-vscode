@@ -224,7 +224,7 @@ export class ModulesHandler {
         const commands = [
             ...activationCommands,
             // if environment install in environment else install globally
-            `conda install ${packageName} ${destination ? `-p ${destination}` : ''} --no-deps`
+            `conda install ${packageName} ${destination ? `-p ${destination}` : ''} --no-deps -y`
         ];
         return new Promise<void>((res, rej) => {
             exec(commands.join(' & '), (error, stdout, stderr) => {
