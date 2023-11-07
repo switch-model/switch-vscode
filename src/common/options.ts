@@ -35,4 +35,4 @@ export type SolverOptionsString = {
     advance?: number,
 };
 
-export type ReserveTypes = 'regulation' | 'contingency';
+export type ReserveTypes = 'regulation' | 'contingency' | "none";
