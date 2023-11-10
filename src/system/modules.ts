@@ -60,7 +60,7 @@ export class ModulesHandler {
                 .map(line => line.trim())
                 .filter(line => !line.startsWith('#') && line !== '');
         }
-
+        
         const moduleList: string[] = await this.getModuleList(useCache);
         return await Promise.all(activatedModules
             .concat(moduleList.filter(module => !activatedModules.includes(module)))
@@ -100,13 +100,18 @@ export class ModulesHandler {
             return this.moduleOptionsCache.get(module)!;
         }
         const options = await this.optionsHandler.getOptions();
-        const outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
+        let outputs;
+        try {
+            outputs = await this.switchApplicationRunner.execute('info', ['--module-arguments', module, '--json']);
+        } catch {
+            return [];
+        }
         const moduleOptions = outputs
             .map(output => JSON.parse(output))
             .flatMap(output => 
                 Object.entries(output).map(([key, value]: [string, Partial<ModuleOption>]) => {
                     const name = key.replace(/^-+/, '');
-                    return (<ModuleOption>{ name: name, value: options?.[_.camelCase(name)], ...value})
+                    return (<ModuleOption>{ name: name, value: options?.[_.camelCase(name)], ...value});
                 }));
 
         this.moduleOptionsCache.set(module, moduleOptions);
@@ -161,7 +166,12 @@ export class ModulesHandler {
         if(useCache && this.moduleListCache) {
             return this.moduleListCache;
         }
-        const moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
+        let moduleListOutput;
+        try {
+            moduleListOutput = (await this.switchApplicationRunner.execute('info', ['--module-list', '--json']));
+        } catch {
+            return [];
+        }
         // Todo this parsing prbsably needs to be improved. Currently matches anything inside of []. Best would of course be if the switch output was better
         const moduleListJson = moduleListOutput[moduleListOutput.length - 1].match(/\[(.|\r|\n)*\]/)?.[0];
         if(!moduleListJson) {

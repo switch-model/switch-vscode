@@ -48,6 +48,7 @@ export class SwitchApplicationRunner {
                 if (state === SwitchApplcationState.Finished) {
                     resolve(process.output);
                 } else if (state === SwitchApplcationState.Error) {
+                    vscode.window.showErrorMessage('An error occured while executing the switch command \n' + process.errors.join('\n'));
                     reject(process.errors);
                 }
             });
